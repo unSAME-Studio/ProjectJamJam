@@ -4,7 +4,7 @@ extends Node
 ## world reports here; the HUD and (later) ActDirector listen to the signals.
 
 signal emerged(def, emitted_def, pos: Vector3, count: int, by_player: bool)
-signal collapsed(into_def, pos: Vector3, n: int)
+signal collapsed(into_def, pos: Vector3, n: int, source_def)
 signal combo_changed(combo: int)
 signal released(power: float)
 signal body_count_changed(n: int)
@@ -15,6 +15,7 @@ const MAX_BODIES := 320
 const COMBO_WINDOW := 1.5
 const COLLAPSE_TICK := 0.25
 const COLLAPSE_RADIUS_BASE := 3.5
+const COLLAPSE_SETTLE := 3.0
 
 var bodies: Array = []           # alive EmergentBody
 var buckets: Dictionary = {}     # name -> Array[EmergentBody]
@@ -102,7 +103,10 @@ func _check_collapses() -> void:
 		if into == null:
 			continue
 		var radius: float = COLLAPSE_RADIUS_BASE + float(def.tier) * 0.75
-		var candidates := list.filter(func(b): return is_instance_valid(b) and not b.absorbing)
+		# Fresh spawns need to settle before they count; otherwise a collapse
+		# product that emits its own ingredients re-collapses every tick.
+		var t := now()
+		var candidates := list.filter(func(b): return is_instance_valid(b) and not b.absorbing and t - b.spawn_time > COLLAPSE_SETTLE)
 		for seed in candidates:
 			var near := []
 			for other in candidates:
@@ -127,7 +131,7 @@ func _collapse(group: Array, into) -> void:
 	combo += 1
 	combo_timer = COMBO_WINDOW
 	combo_changed.emit(combo)
-	collapsed.emit(into, center, group.size())
+	collapsed.emit(into, center, group.size(), group[0].def)
 	if _world:
 		_world.spawn_after(into, center, 0.35)
 

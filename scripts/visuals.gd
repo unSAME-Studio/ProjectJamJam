@@ -5,6 +5,7 @@ extends RefCounted
 ## of the object's name (the fallback that lets anything in the CSV exist).
 
 const SIZE_HEIGHT := {"S": 0.45, "M": 1.3, "L": 3.2, "XL": 6.0}
+const TEXT_HEIGHT := {"S": 0.5, "M": 0.85, "L": 1.4, "XL": 2.2}
 const CITY := "res://assets/models/city/"
 const NPC_MODELS := {
 	"Michiru": "FAMILY02_D", "Mizue": "FAMILY04_D", "Mutsuo": "FAMILY01_D", "Tomino": "FAMILY03_D",
@@ -77,6 +78,8 @@ static func build(def) -> Built:
 			_box(b, Vector3(0.3, 0.01, 0.4), Color(1, 1, 1))
 		"croc":
 			_build_croc(b)
+		"flood":
+			_build_flood(b)
 		_:
 			_build_text(def, b)
 	if b.shape == null:
@@ -478,8 +481,25 @@ static func _label(text: String, pos: Vector3, size: float, color: Color) -> Lab
 	return l
 
 
+static func _build_flood(b: Built) -> void:
+	var m := CylinderMesh.new()
+	m.top_radius = 2.4
+	m.bottom_radius = 2.6
+	m.height = 0.22
+	m.radial_segments = 16
+	b.visual = _mi(m, _mat(Color(0.25, 0.55, 1.0, 0.8)), Vector3(0, 0.11, 0))
+	var s := CylinderShape3D.new()
+	s.radius = 2.4
+	s.height = 0.22
+	b.shape = s
+	b.shape_offset = Vector3(0, 0.11, 0)
+	b.height = 0.25
+	b.color = Color(0.3, 0.6, 1.0)
+
+
 static func _build_text(def, b: Built) -> void:
 	# Fallback: the object's name as a chunky rainbow 3D word.
+	b.height = TEXT_HEIGHT.get(def.size, 0.9)
 	var tm := TextMesh.new()
 	tm.text = def.name
 	tm.font = Boot.font

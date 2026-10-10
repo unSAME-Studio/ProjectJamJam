@@ -48,6 +48,7 @@ static func create(d) -> EmergentBody:
 func _ready() -> void:
 	add_to_group("emergent")
 	spawn_time = Stats.now()
+	cooldown_until = spawn_time + 0.6
 	built = Visuals.build(def)
 	visual = built.visual
 	add_child(visual)
@@ -92,6 +93,10 @@ func _ready() -> void:
 	if is_water:
 		life_left = randf_range(7.0, 10.0)
 		linear_damp = 0.5
+	if def.id == "flood":
+		life_left = 14.0
+		linear_damp = 3.0
+		angular_damp = 8.0
 	if def.id == "flock":
 		gravity_scale = 0.0
 		linear_damp = 0.3

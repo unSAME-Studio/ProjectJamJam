@@ -14,6 +14,7 @@ var _target: EmergentBody
 var _phase_t := 0.0
 var _used: Array = []
 var _report_t := 0.0
+var _shots: Array = [2.0, 6.5, 12.0, 18.0, 26.0, 34.0]
 
 
 func _ready() -> void:
@@ -32,6 +33,9 @@ func _physics_process(delta: float) -> void:
 	if _t > RUN_TIME:
 		_finish()
 		return
+	if not _shots.is_empty() and _t >= _shots[0]:
+		_shots.pop_front()
+		_screenshot()
 	match _phase:
 		"seek":
 			if _target == null or not is_instance_valid(_target):
@@ -57,6 +61,16 @@ func _physics_process(delta: float) -> void:
 				_used.append(_target)
 				_target = null
 				_set_phase("seek")
+
+
+func _screenshot() -> void:
+	if Boot.shots_dir == "" or DisplayServer.get_name() == "headless":
+		return
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	var path := "%s/shot_%05.1f.png" % [Boot.shots_dir, _t]
+	img.save_png(path)
+	print("[autopilot] screenshot %s" % path)
 
 
 func _set_phase(p: String) -> void:

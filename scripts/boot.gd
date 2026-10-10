@@ -6,6 +6,7 @@ const FONT_PATH := "res://assets/fonts/wqy-zenhei.ttf"
 
 var font: Font
 var autopilot := false
+var shots_dir := ""
 
 
 func _init() -> void:
@@ -21,6 +22,9 @@ func _init() -> void:
 	_add_key("toggle_mouse", KEY_ESCAPE)
 	_add_key("debug_spawn", KEY_T)
 	autopilot = "--autopilot" in OS.get_cmdline_user_args()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--shots="):
+			shots_dir = a.substr(8)
 
 
 func _ready() -> void:

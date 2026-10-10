@@ -2,14 +2,14 @@ id,name,act,tier,pattern,size,anchored,emits,collapse_n,collapse_into,eats,eat_e
 person,路人,1,2,system,M,,,12,单位,,,钱→老板; 小广告→中介,原来如此。,approved,,被打中→爬起来→「原来如此。」→开窍：自己做小规模吐纳（吸附近几个小东西，随机方向吐）。不再分裂出新路人
 pigeon,鸽子,1,2,reproduce,S,,鸽子×3,30,鸽群,,,,鸽子涌现出来了。,approved,,最便宜的数量炸弹
 flock,鸽群,1,3,reproduce,M,,,3,天气,,,,鸽群涌现出来了。,approved,,会飞的子弹，撞到什么触发什么
-weather,天气,1,4,container,L,,雨×40,,,,,,天气涌现出来了。,idea,,雨=水，落到下水道附近触发鳄鱼链
+weather,天气,1,4,container,L,,雨×25,,,,,,天气涌现出来了。,idea,,雨=水，落到下水道附近触发鳄鱼链
 tree,树,1,1,container,M,y,苹果×5,8,公园,,,,苹果涌现出来了。,approved,,
 apple,苹果,1,1,recursive,S,,树×1,,,,,,树涌现出来了。,approved,,苹果→树→苹果，无限植物灾难。喷出的树先是小树苗，几秒长大
-park,公园,1,3,container,L,y,大爷×3,,,,,,公园涌现出来了。,approved,,
+park,公园,1,3,container,L,y,大爷×1,,,,,,公园涌现出来了。,approved,,
 grandpa,大爷,1,2,system,M,,太极×1,,,,,,嗯。,approved,,天生开窍，不需要被传染。气功源头。太极=持续推开周围东西的力场
 hydrant,消防栓,1,1,container,S,y,水×30,,,,,,水涌现出来了。,approved,,
 water,水,1,1,,S,,,30,洪水,,,,,approved,,小球体/粒子，没有自己的涌现。被下水道吃
-flood,洪水,1,2,container,L,,水×60,,,,,,洪水涌现出来了。,idea,,数量兜底：水太多时合成一个大水体，物理上只有一个物体
+flood,洪水,1,2,,L,,,,,,,,洪水涌现出来了。,approved,,数量兜底：水×30 合成一滩，物理上只有一个物体，14 秒后蒸发。不再喷水
 drain,下水道,1,1,container,S,y,,,,水×20,鳄鱼×1,,鳄鱼涌现出来了。,approved,,消化者。都市传说
 croc,鳄鱼,1,2,reproduce,M,,鳄鱼×1,5,皮包,,,,鳄鱼涌现出来了。,approved,,
 handbag,皮包,1,3,container,S,,钱×15,,,,,,皮包涌现出来了。,idea,,鳄鱼皮包→钱，接回资本链
@@ -28,8 +28,8 @@ money,钱,1,1,,S,,,20,资本,,,,,approved,,撞路人→老板（配方）
 capital,资本,1,3,concept,M,,公司×1,,,,,,资本涌现出来了。,approved,,
 boss,老板,1,2,container,M,,上班族×8,,,,,,上班族涌现出来了。,approved,,
 bus,公交车,1,1,container,L,,路人×12,4,堵车,,,,乘客涌现出来了。,approved,,
-car,汽车,1,1,reproduce,M,,汽车×3,6,堵车,,,,小汽车涌现出来了。,approved,,块魂梗。喷出来的汽车是小一号的，缩放 0.6
-jam_traffic,堵车,1,3,container,L,,汽车×10,3,交通,,,,堵车涌现出来了。,approved,,一整块不动的车。喇叭声是声波触发器
+car,汽车,1,1,reproduce,M,,汽车×2,6,堵车,,,,小汽车涌现出来了。,approved,,块魂梗。喷出来的汽车是小一号的，缩放 0.6
+jam_traffic,堵车,1,3,container,L,,汽车×4,3,交通,,,,堵车涌现出来了。,approved,,一整块不动的车。喇叭声是声波触发器
 pole,电线杆,1,1,container,M,y,小广告×10,,,,,,小广告涌现出来了。,approved,,办证 / 重金求子 / 祖传老中医
 flyer,小广告,1,1,,S,,,20,贴吧,,,,,approved,,贴在任何撞到的东西表面
 speaker,大喇叭,1,1,system,S,y,声波×1,,,,,,走过路过不要错过。,approved,,声波=范围触发，连锁放大器
@@ -84,7 +84,7 @@ fizz,气,1,1,system,-,,,,,,,,,idea,,饮料喷出的推进力。不是实体，�
 soundwave,声波,1,1,system,-,,,,,,,,,idea,,大喇叭的范围触发。不是实体，是一次范围检测
 overtime,加班,2,1,system,-,,,,,,,,,idea,,上班族头顶的小时钟，让它变慢。不是实体，是状态
 danwei,单位,1,3,container,L,y,上班族×6,,,,,,单位涌现出来了。,idea,,路人×12 的坍缩结果。中国式机构
-traffic,交通,2,4,concept,XL,,堵车×2,,,,,,交通涌现出来了。,idea,,堵车×3。一个大概念物体，撞到路会生成堵车
+traffic,交通,2,4,concept,XL,,堵车×1,,,,,,交通涌现出来了。,idea,,堵车×3。一个大概念物体，撞到路会生成堵车
 esports,战队,2,3,container,L,,网瘾少年×8,,,,,,战队涌现出来了。,idea,,网瘾少年×10
 reinstall,系统重装,2,4,system,-,,,,,,,,系统重装涌现出来了。,idea,,触发假蓝屏→插曲 B 的事件物体，本身不存活
 toiletbowl,马桶,1,1,container,S,,水×10,,,,,,,idea,,可砍，跟公厕一起

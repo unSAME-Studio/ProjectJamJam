@@ -72,13 +72,21 @@ func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool) -> EmergentBody:
 		return null
 	var b := EmergentBody.create(def)
 	_bodies_root.add_child(b)
+	if def.anchored:
+		# Fixed things grow out of the ground where they land.
+		pos.y = 0.0
+		velocity = Vector3.ZERO
+		pos += Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
 	b.global_position = pos
 	b.rotation.y = randf_range(0, TAU)
 	if velocity != Vector3.ZERO:
 		b.linear_velocity = velocity
 		b.angular_velocity = Vector3(randf_range(-4, 4), randf_range(-4, 4), randf_range(-4, 4))
-	if hot:
-		b.set_hot(EmergentBody.EMIT_HOT_TIME)
+	if hot and not def.anchored:
+		# Only some shrapnel stays "live"; otherwise chains run away.
+		var chance := 0.25 if def.pattern == "reproduce" else 0.5
+		if randf() < chance:
+			b.set_hot(EmergentBody.EMIT_HOT_TIME)
 	# pop in
 	var base: Vector3 = b.visual.scale
 	b.visual.scale = base * 0.1
@@ -183,7 +191,7 @@ func _build_ground() -> void:
 	pm.size = Vector2(140, 140)
 	mi.mesh = pm
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.62, 0.75, 0.5)
+	m.albedo_color = Color(0.5, 0.68, 0.4)
 	m.roughness = 1.0
 	mi.material_override = m
 	ground.add_child(mi)

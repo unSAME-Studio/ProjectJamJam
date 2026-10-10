@@ -137,7 +137,7 @@ func _on_emerged(def, emitted_def, pos: Vector3, count: int, by_player: bool) ->
 		show_l2(text, pos, tier)
 
 
-func _on_collapsed(into_def, pos: Vector3, n: int) -> void:
+func _on_collapsed(into_def, pos: Vector3, n: int, source_def) -> void:
 	var text := "%s涌现出来了。" % into_def.name
 	if into_def.line != "" and into_def.emits.is_empty():
 		text = into_def.line
@@ -145,15 +145,9 @@ func _on_collapsed(into_def, pos: Vector3, n: int) -> void:
 		show_l3(text, into_def.tier)
 	else:
 		show_l2(text, pos, into_def.tier + 2)
-	popup("%s ×%d → %s" % [_source_name_hint(into_def), n, into_def.name])
+	popup("%s ×%d → %s" % [source_def.name, n, into_def.name])
 	Juice.ui_sfx("chime", -6.0, 1.0 + (into_def.tier - 3) * 0.08)
 
-
-func _source_name_hint(into_def) -> String:
-	for d in DB.defs.values():
-		if d.collapse_into == into_def.name:
-			return d.name
-	return "?"
 
 
 func _on_combo(c: int) -> void:
