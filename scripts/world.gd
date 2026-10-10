@@ -6,10 +6,10 @@ const CITY := "res://assets/models/city/"
 
 # name, position, yaw (deg)
 const LAYOUT := [
-	["ATM", Vector3(6, 0, -8), 180], ["ATM", Vector3(8.4, 0, -8), 180],
-	["自动售货机", Vector3(-7, 0, -8), 180],
-	["小卖部", Vector3(-12, 0, -9), 180],
-	["报刊亭", Vector3(14, 0, -9), 180],
+	["ATM", Vector3(6, 0, -8), 0], ["ATM", Vector3(8.4, 0, -8), 0],
+	["自动售货机", Vector3(-7, 0, -8), 0],
+	["小卖部", Vector3(-12, 0, -9), 0],
+	["报刊亭", Vector3(14, 0, -9), 0],
 	["网吧", Vector3(0, 0, -22), 0],
 	["消防栓", Vector3(4, 0, 4), 0], ["消防栓", Vector3(-16, 0, 12), 0],
 	["下水道", Vector3(7, 0, 6), 0], ["下水道", Vector3(-13, 0, 14), 0],
