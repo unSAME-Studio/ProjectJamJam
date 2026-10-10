@@ -476,8 +476,9 @@ func say(text: String, time: float = 1.5) -> void:
 		_bubble.queue_free()
 	_bubble = Label3D.new()
 	_bubble.text = text
-	_bubble.font = Boot.font
+	_bubble.font = Boot.font_happy
 	_bubble.font_size = 56
+	_bubble.outline_modulate = Color(0.1, 0.05, 0.3)
 	_bubble.pixel_size = 0.012
 	_bubble.outline_size = 12
 	_bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED

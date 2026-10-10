@@ -47,10 +47,12 @@ func _ready() -> void:
 	_hum.volume_db = -14.0
 	add_child(_hum)
 	_charge_label = Label3D.new()
-	_charge_label.font = Boot.font
-	_charge_label.font_size = 64
-	_charge_label.pixel_size = 0.012
-	_charge_label.outline_size = 14
+	_charge_label.font = Boot.font_brush
+	_charge_label.font_size = 72
+	_charge_label.pixel_size = 0.013
+	_charge_label.outline_size = 16
+	_charge_label.modulate = Color(1.0, 0.95, 0.6)
+	_charge_label.outline_modulate = Color(0.45, 0.05, 0.05)
 	_charge_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_charge_label.no_depth_test = true
 	_charge_label.position = Vector3(0, 2.4, 0)

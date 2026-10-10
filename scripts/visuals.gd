@@ -471,7 +471,7 @@ static func _build_croc(b: Built) -> void:
 static func _label(text: String, pos: Vector3, size: float, color: Color) -> Label3D:
 	var l := Label3D.new()
 	l.text = text
-	l.font = Boot.font if Boot.font else null
+	l.font = Boot.font_display
 	l.font_size = 64
 	l.pixel_size = size / 64.0
 	l.modulate = color
@@ -502,7 +502,7 @@ static func _build_text(def, b: Built) -> void:
 	b.height = TEXT_HEIGHT.get(def.size, 0.9)
 	var tm := TextMesh.new()
 	tm.text = def.name
-	tm.font = Boot.font
+	tm.font = Boot.font_display
 	tm.font_size = 64
 	tm.pixel_size = b.height / 64.0
 	tm.depth = 0.35 * b.height
@@ -521,7 +521,7 @@ static func _build_text(def, b: Built) -> void:
 static func char_body_mesh(ch: String, height: float) -> Mesh:
 	var tm := TextMesh.new()
 	tm.text = ch
-	tm.font = Boot.font
+	tm.font = Boot.font_display
 	tm.font_size = 64
 	tm.pixel_size = height / 64.0
 	tm.depth = 0.3 * height

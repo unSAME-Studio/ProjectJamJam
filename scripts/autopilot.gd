@@ -15,6 +15,7 @@ var _phase_t := 0.0
 var _used: Array = []
 var _report_t := 0.0
 var _shots: Array = [2.0, 6.5, 12.0, 18.0, 26.0, 34.0]
+var _showcased := false
 
 
 func _ready() -> void:
@@ -36,6 +37,9 @@ func _physics_process(delta: float) -> void:
 	if not _shots.is_empty() and _t >= _shots[0]:
 		_shots.pop_front()
 		_screenshot()
+	if not _showcased and _t >= 1.2:
+		_showcased = true
+		_showcase_captions()
 	match _phase:
 		"seek":
 			if _target == null or not is_instance_valid(_target):
@@ -61,6 +65,22 @@ func _physics_process(delta: float) -> void:
 				_used.append(_target)
 				_target = null
 				_set_phase("seek")
+
+
+func _showcase_captions() -> void:
+	# Only meaningful with a display; exercises every caption style once.
+	if Boot.shots_dir == "":
+		return
+	var hud = _world.hud
+	var p: Vector3 = _player.global_position
+	var f: Vector3 = _player.facing
+	hud.show_l2("钱", "涌现出来了。", p + f * 4.0 + Vector3(-3, 0, 0), 1)
+	hud.show_l2("资本", "涌现出来了。", p + f * 6.0 + Vector3(3, 1, 0), 3)
+	hud.show_l2("两个杀毒软件打起来了", "。", p + f * 8.0 + Vector3(0, 2, 0), 4)
+	hud.show_l3("游戏", "涌现出来了。", 4)
+	Stats.combo = 23
+	Stats.combo_timer = 3.0
+	Stats.combo_changed.emit(23)
 
 
 func _screenshot() -> void:
