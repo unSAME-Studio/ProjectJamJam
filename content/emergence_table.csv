@@ -1,99 +1,125 @@
-id,name,act,tier,pattern,emits,collapse_n,collapse_into,eats,eat_emits,recipes,line,status,owner,notes
-person,路人,1,2,reproduce,路人×1,12,单位,,,钱→老板; 小广告→中介,原来如此。,approved,,被打中后学会涌现（传染）。每隔几秒自己朝随机方向喷
-pigeon,鸽子,1,2,reproduce,鸽子×3,30,鸽群,,,,鸽子涌现出来了。,approved,,最便宜的数量炸弹
-flock,鸽群,1,3,reproduce,,3,天气,,,,鸽群涌现出来了。,approved,,会飞的子弹，撞到什么触发什么
-weather,天气,1,4,container,雨×40,,,,,,天气涌现出来了。,idea,,雨=水，落到下水道附近触发鳄鱼链
-tree,树,1,1,container,苹果×5,8,公园,,,,苹果涌现出来了。,approved,,
-apple,苹果,1,1,recursive,树×1,,,,,,树涌现出来了。,approved,,苹果→树→苹果，无限植物灾难。喷出的树先是小树苗，几秒长大
-park,公园,1,3,container,大爷×3,,,,,,公园涌现出来了。,approved,,
-grandpa,大爷,1,2,system,太极×1,,,,,,嗯。,approved,,天生会涌现，不需要被传染。气功源头。太极=持续推开周围东西的力场
-hydrant,消防栓,1,1,container,水×30,,,,,,水涌现出来了。,approved,,
-water,水,1,1,,,30,洪水,,,,,approved,,小球体/粒子，没有自己的涌现。被下水道吃
-flood,洪水,1,2,container,水×60,,,,,,洪水涌现出来了。,idea,,数量兜底：水太多时合成一个大水体，物理上只有一个物体
-drain,下水道,1,1,container,,,,水×20,鳄鱼×1,,鳄鱼涌现出来了。,approved,,消化者。都市传说
-croc,鳄鱼,1,2,reproduce,鳄鱼×1,5,皮包,,,,鳄鱼涌现出来了。,approved,,
-handbag,皮包,1,3,container,钱×15,,,,,,皮包涌现出来了。,idea,,鳄鱼皮包→钱，接回资本链
-trashcan,垃圾桶,1,1,container,垃圾×8,,,,,,垃圾涌现出来了。,approved,,
-trash,垃圾,1,1,,,20,垃圾山,,,,,approved,,
-trashpile,垃圾山,1,2,container,,,,,,,垃圾山涌现出来了。,approved,,被垃圾车吃
-garbagetruck,垃圾车,1,1,container,,,,垃圾山×2,回收站×1,,回收站涌现出来了。,approved,,消化者。吃够了喷出 XP 回收站图标→飞到屏幕角变成归档 UI
-recyclebin,回收站,1,4,system,,,,,,,,approved,,UI 碎片。之后太远/太久不动的小东西飞进去 +1
-vending,自动售货机,1,1,container,饮料×6,,,,,,饮料涌现出来了。,approved,,
-drink,饮料,1,1,system,气×1,10,小卖部,,,,,approved,,被打中=摇晃过的可乐，喷气乱飞，是最好的随机子弹
-kiosk,小卖部,1,3,container,辣条×12,,,,,,小卖部涌现出来了。,approved,,
-latiao,辣条,1,1,,,15,童年,,,,,approved,,
-childhood,童年,1,4,concept,,,,,,,童年涌现出来了。,idea,,一个发光的概念物体，撞到路人→路人变小孩（小一号、跑得快）
-atm,ATM,1,1,container,钱×20,,,,,,钱涌现出来了。,approved,,第一幕的明星物体
-money,钱,1,1,,,20,资本,,,,,approved,,撞路人→老板（配方）
-capital,资本,1,3,concept,公司×1,,,,,,资本涌现出来了。,approved,,
-boss,老板,1,2,container,上班族×8,,,,,,上班族涌现出来了。,approved,,
-bus,公交车,1,1,container,路人×12,4,堵车,,,,乘客涌现出来了。,approved,,
-car,汽车,1,1,reproduce,汽车×3,6,堵车,,,,小汽车涌现出来了。,approved,,块魂梗。喷出来的汽车是小一号的，缩放 0.6
-jam_traffic,堵车,1,3,container,汽车×10,3,交通,,,,堵车涌现出来了。,approved,,一整块不动的车。喇叭声是声波触发器
-pole,电线杆,1,1,container,小广告×10,,,,,,小广告涌现出来了。,approved,,办证 / 重金求子 / 祖传老中医
-flyer,小广告,1,1,,,20,贴吧,,,,,approved,,贴在任何撞到的东西表面
-speaker,大喇叭,1,1,system,声波×1,,,,,,走过路过不要错过。,approved,,声波=范围触发，连锁放大器
-newsstand,报刊亭,1,1,container,光盘×10,,,,,,光盘涌现出来了。,approved,,
-disc,光盘,1,1,,,10,盗版,,,,,approved,,会滚，会反光
-piracy,盗版,1,3,container,游戏×3,,,,,,盗版涌现出来了。,approved,,"第一幕通往""游戏""的后门"
-netbar,网吧,1,3,container,网瘾少年×6,,,,,,网瘾少年涌现出来了。,approved,,第一幕最大建筑，插曲 C 的伏笔
-netkid,网瘾少年,1,2,container,弹窗×3,10,战队,,,,,approved,,
-popup,弹窗,1,1,reproduce,弹窗×2,15,杀毒软件,,,,,approved,,物理的 XP 窗口。打中=关掉，但会再弹两个。UI 碎片主要来源
-antivirus,杀毒软件,1,3,container,,2,两个杀毒软件打起来了,,,,杀毒软件涌现出来了。,approved,,小狮子风格桌面宠物，会追着弹窗跑
-avwar,两个杀毒软件打起来了,2,4,system,,,,弹窗|电脑|网友×30,系统重装×1,,系统重装涌现出来了。,approved,,消化者+事件。两只互相扔东西，范围内全吃。吃够→触发假蓝屏→插曲 B
-toilet,公厕,1,1,container,马桶×4,,,,,,,idea,,马桶喷水。可砍
-worker,上班族,2,2,system,加班×1,10,公司,,,,,approved,,加班=头顶冒一个小时钟，速度变慢
-company,公司,2,3,container,电脑×5,5,经济,,,公司→收购,公司涌现出来了。,approved,,公司撞公司=合并成大一号的公司
-computer,电脑,2,1,container,弹窗×4,10,电脑城,,,上班族→游戏,,approved,,上班族撞电脑=摸鱼→游戏
-pcmall,电脑城,2,3,container,电脑×8,,,,,,电脑城涌现出来了。,idea,,
-game,游戏,2,3,container,路人×4,5,GAME JAM,,,,游戏涌现出来了。,approved,,玩家=坐着不动的 NPC，被撞才会动
-school,学校,2,3,container,学生×15,,,,,,学生涌现出来了。,approved,,
-student,学生,2,2,,,20,高考,,,,,approved,,
-gaokao,高考,2,4,concept,试卷×40,,,,,,高考涌现出来了。,idea,,试卷像弹窗一样下雨
-site,工地,2,3,container,楼×3,,,,,,楼涌现出来了。,approved,,楼从地里长出来
-building,楼,2,3,,,8,小区,,,,,approved,,
-compound,小区,2,3,,,3,房价,,,,,approved,,
-housingprice,房价,2,4,concept,楼×1,,,,,上班族→房奴,房价涌现出来了。,approved,,一个只会变大的数字。撞上班族=背上一栋楼，变慢
-bank,银行,2,3,container,钱×50,,,,,资本→股市,,approved,,
-stockmarket,股市,2,4,concept,K线×20,,,,,,涨涌现出来了。,idea,,红绿柱子当物理物体喷
-tvstation,电视台,2,3,container,广告×10,,,,,,广告涌现出来了。,idea,,广告=带脑白金气质的物理广告牌
-ad,广告,2,1,,,10,消费,,,,,idea,,
-tieba,贴吧,2,4,container,网友×20,,,,,,贴吧涌现出来了。,approved,,
-netizen,网友,2,2,reproduce,网友×2,30,互联网,,,,,approved,,互相吵架（互相喷），天然连锁
-gameplay,游戏性,2,4,system,,,,,,*→带血条,游戏性涌现出来了。,approved,,插曲 B 的产物。撞到什么，什么头上冒血条
-economy,经济,2,4,container,公司×3,2,资本主义,,,,经济涌现出来了。,approved,,
-city,城市,3,4,,,5,文明,,,,,approved,,第二幕烘焙后的整块地砖，第三幕里是一个物体
-civilization,文明,3,5,container,卫星×6,3,历史,,,,文明涌现出来了。,approved,,
-satellite,卫星,3,4,,,10,太空垃圾,,,,,idea,,绕地球转，是第三幕的子弹
-internet,互联网,3,5,container,网友×50,,,,,,互联网涌现出来了。,approved,,网民=极小的网友
-capitalism,资本主义,3,5,container,公司×10,,,,,,资本主义涌现出来了。,approved,,
-moon,月亮,3,5,container,月饼×30,,,,,,月饼涌现出来了。,idea,,
-sun,太阳,3,6,container,行星×8,,,,,,行星涌现出来了。,approved,,
-planet,行星,3,5,,,8,太阳系,,,,,approved,,
-solarsystem,太阳系,3,6,,,3,银河,,,,,approved,,
-galaxy,银河,3,6,container,时间×1,,,,,,时间涌现出来了。,approved,,
-time,时间,3,6,concept,,,,,,,,approved,,一个钟。存在时所有物体速度×2，叠加
-consciousness,意识,3,6,concept,问题×5,,,,,,意识涌现出来了。,idea,,"网民×100 的替代坍缩结果。问题=""我是谁""的实体文字"
-gamejam,GAME JAM,3,5,container,开发者×4; 游戏×6,3,独立游戏,,,,GAME JAM涌现出来了。,approved,,插曲 C。四个人在网吧包夜。游戏×5→GAME JAM→游戏：递归
-developer,开发者,3,2,container,游戏×1,,,,,,,approved,,长得像我们四个
-emergence,涌现,3,6,container,制作人员名单×20,,,,,,涌现涌现出来了！,approved,,终幕。全部坍缩成这一个实体文字。喷出名单→名单撞灰色小人→回冷开场
-credits,制作人员名单,3,1,,,,,,,玩家→冷开场,,approved,,物理的滚动字幕
-rain,雨,1,1,,,,,,,,,idea,,= 水的下落版本，落地变成水
-taichi,太极,1,1,system,,,,,,,,idea,,大爷周围的持续力场，把东西推开。不是实体，是区域
-fizz,气,1,1,system,,,,,,,,idea,,饮料喷出的推进力。不是实体，是给饮料自己的冲量
-soundwave,声波,1,1,system,,,,,,,,idea,,大喇叭的范围触发。不是实体，是一次范围检测
-overtime,加班,2,1,system,,,,,,,,idea,,上班族头顶的小时钟，让它变慢。不是实体，是状态
-danwei,单位,1,3,container,上班族×6,,,,,,单位涌现出来了。,idea,,路人×12 的坍缩结果。中国式机构
-traffic,交通,2,4,concept,堵车×2,,,,,,交通涌现出来了。,idea,,堵车×3。一个大概念物体，撞到路会生成堵车
-esports,战队,2,3,container,网瘾少年×8,,,,,,战队涌现出来了。,idea,,网瘾少年×10
-reinstall,系统重装,2,4,system,,,,,,,系统重装涌现出来了。,idea,,触发假蓝屏→插曲 B 的事件物体，本身不存活
-toiletbowl,马桶,1,1,container,水×10,,,,,,,idea,,可砍，跟公厕一起
-exam,试卷,2,1,,,,,,,,,idea,,= 弹窗的学校版，贴脸
-kline,K线,2,1,,,,,,,,,idea,,红绿柱子，红的往上飞，绿的往下砸
-consumption,消费,2,4,concept,钱×30,,,,,,消费涌现出来了。,idea,,广告×10。喷钱但钱是负的（吸附路人口袋）——可砍
-history,历史,3,6,concept,文明×2,,,,,,历史涌现出来了。,idea,,文明×3。递归：历史又喷文明
-spacejunk,太空垃圾,3,4,container,,,,,,,,idea,,卫星×10。绕圈的垃圾山，撞什么触发什么
-mooncake,月饼,3,1,,,,,,,,,idea,,= 苹果的太空版
-question,问题,3,6,concept,,,,,,,,idea,,"""我是谁""的实体文字，撞到什么什么就停下来不动三秒"
-indiegame,独立游戏,3,6,container,开发者×12,,,,,,独立游戏涌现出来了。,idea,,GAME JAM×3。不喷游戏，只喷更多开发者
-player,玩家,0,0,,,,,,,,,approved,,特殊 id：玩家当前身体。名单撞玩家→回冷开场
+id,name,act,tier,pattern,size,anchored,emits,collapse_n,collapse_into,eats,eat_emits,recipes,line,status,owner,notes
+person,路人,1,2,reproduce,M,,路人×1,12,单位,,,钱→老板; 小广告→中介,原来如此。,approved,,被吸进丹田再吐出 / 被高速撞中→开窍：自己做小规模吐纳（吸附近几个小东西，随机方向吐）
+pigeon,鸽子,1,2,reproduce,S,,鸽子×3,30,鸽群,,,,鸽子涌现出来了。,approved,,最便宜的数量炸弹
+flock,鸽群,1,3,reproduce,M,,,3,天气,,,,鸽群涌现出来了。,approved,,会飞的子弹，撞到什么触发什么
+weather,天气,1,4,container,L,,雨×40,,,,,,天气涌现出来了。,idea,,雨=水，落到下水道附近触发鳄鱼链
+tree,树,1,1,container,M,y,苹果×5,8,公园,,,,苹果涌现出来了。,approved,,
+apple,苹果,1,1,recursive,S,,树×1,,,,,,树涌现出来了。,approved,,苹果→树→苹果，无限植物灾难。喷出的树先是小树苗，几秒长大
+park,公园,1,3,container,L,y,大爷×3,,,,,,公园涌现出来了。,approved,,
+grandpa,大爷,1,2,system,M,,太极×1,,,,,,嗯。,approved,,天生会涌现，不需要被传染。气功源头。太极=持续推开周围东西的力场
+hydrant,消防栓,1,1,container,S,y,水×30,,,,,,水涌现出来了。,approved,,
+water,水,1,1,,S,,,30,洪水,,,,,approved,,小球体/粒子，没有自己的涌现。被下水道吃
+flood,洪水,1,2,container,L,,水×60,,,,,,洪水涌现出来了。,idea,,数量兜底：水太多时合成一个大水体，物理上只有一个物体
+drain,下水道,1,1,container,S,y,,,,水×20,鳄鱼×1,,鳄鱼涌现出来了。,approved,,消化者。都市传说
+croc,鳄鱼,1,2,reproduce,M,,鳄鱼×1,5,皮包,,,,鳄鱼涌现出来了。,approved,,
+handbag,皮包,1,3,container,S,,钱×15,,,,,,皮包涌现出来了。,idea,,鳄鱼皮包→钱，接回资本链
+trashcan,垃圾桶,1,1,container,M,y,垃圾×8,,,,,,垃圾涌现出来了。,approved,,
+trash,垃圾,1,1,,S,,,20,垃圾山,,,,,approved,,
+trashpile,垃圾山,1,2,container,M,,,,,,,,垃圾山涌现出来了。,approved,,被垃圾车吃
+garbagetruck,垃圾车,1,1,container,L,,,,,垃圾山×2,回收站×1,,回收站涌现出来了。,approved,,消化者。吃够了喷出 XP 回收站图标→飞到屏幕角变成归档 UI
+recyclebin,回收站,1,4,system,M,y,,,,*×30,,,回收站已清空。,approved,,第一幕：垃圾车涌现出来后飞到屏幕左下角成为归档 UI。桌面插曲：地上的固定图标，吃任何东西，吃够 30 个→清空回收站→内存释放（唯一的减法）
+vending,自动售货机,1,1,container,M,y,饮料×6,,,,,,饮料涌现出来了。,approved,,
+drink,饮料,1,1,system,S,,气×1,10,小卖部,,,,气涌现出来了。,approved,,被打中=摇晃过的可乐，喷气乱飞，是最好的随机子弹
+kiosk,小卖部,1,3,container,L,y,辣条×12,,,,,,小卖部涌现出来了。,approved,,
+latiao,辣条,1,1,,S,,,15,童年,,,,,approved,,
+childhood,童年,1,4,concept,M,,,,,,,,童年涌现出来了。,idea,,一个发光的概念物体，撞到路人→路人变小孩（小一号、跑得快）
+atm,ATM,1,1,container,M,y,钱×20,,,,,,钱涌现出来了。,approved,,第一幕的明星物体。小人 1 级时只能榨（按住 1s 吐钱，钱飞进肚子），丹田 2 级后可以整台吸走
+money,钱,1,1,,S,,,20,资本,,,,,approved,,撞路人→老板（配方）
+capital,资本,1,3,concept,M,,公司×1,,,,,,资本涌现出来了。,approved,,
+boss,老板,1,2,container,M,,上班族×8,,,,,,上班族涌现出来了。,approved,,
+bus,公交车,1,1,container,L,,路人×12,4,堵车,,,,乘客涌现出来了。,approved,,
+car,汽车,1,1,reproduce,M,,汽车×3,6,堵车,,,,小汽车涌现出来了。,approved,,块魂梗。喷出来的汽车是小一号的，缩放 0.6
+jam_traffic,堵车,1,3,container,L,,汽车×10,3,交通,,,,堵车涌现出来了。,approved,,一整块不动的车。喇叭声是声波触发器
+pole,电线杆,1,1,container,M,y,小广告×10,,,,,,小广告涌现出来了。,approved,,办证 / 重金求子 / 祖传老中医
+flyer,小广告,1,1,,S,,,20,贴吧,,,,,approved,,贴在任何撞到的东西表面
+speaker,大喇叭,1,1,system,S,y,声波×1,,,,,,走过路过不要错过。,approved,,声波=范围触发，连锁放大器
+newsstand,报刊亭,1,1,container,M,y,光盘×10,,,,,,光盘涌现出来了。,approved,,
+disc,光盘,1,1,,S,,,10,盗版,,,,,approved,,会滚，会反光
+piracy,盗版,1,3,container,M,,游戏×3,,,,,,盗版涌现出来了。,approved,,"第一幕通往""游戏""的后门"
+netbar,网吧,1,3,container,L,y,网瘾少年×6,,,,,,网瘾少年涌现出来了。,approved,,第一幕最大建筑。丹田 3 级才能整栋吸走（第一幕高潮）。插曲 C 的伏笔
+netkid,网瘾少年,1,2,container,M,,弹窗×3,10,战队,,,,弹窗涌现出来了。,approved,,
+popup,弹窗,1,1,reproduce,S,,弹窗×2,15,杀毒软件,,,,弹窗涌现出来了。,approved,,物理的 XP 窗口。打中=关掉，但会再弹两个。UI 碎片主要来源。桌面插曲里由浏览器涌现
+antivirus,杀毒软件,1,3,container,M,,,2,两个杀毒软件打起来了,,,,杀毒软件涌现出来了。,approved,,小狮子风格桌面宠物，会追着弹窗跑。桌面插曲里当桌面宠物复用
+avwar,两个杀毒软件打起来了,2,4,system,L,,,,,弹窗|电脑|网友×30,系统重装×1,,系统重装涌现出来了。,approved,,消化者+事件。两只互相扔东西，范围内全吃。吃够→触发假蓝屏→插曲 B
+toilet,公厕,1,1,container,L,y,马桶×4,,,,,,,idea,,马桶喷水。可砍
+worker,上班族,2,2,system,M,,加班×1,10,公司,,,,加班涌现出来了。,approved,,加班=头顶冒一个小时钟，速度变慢
+company,公司,2,3,container,L,y,电脑×5,5,经济,,,公司→集团,公司涌现出来了。,approved,,公司撞公司=合并成大一号的公司
+computer,电脑,2,1,container,S,,弹窗×4,10,电脑城,,,上班族→游戏,弹窗涌现出来了。,approved,,上班族撞电脑=摸鱼→游戏
+pcmall,电脑城,2,3,container,L,y,电脑×8,,,,,,电脑城涌现出来了。,idea,,
+game,游戏,2,3,container,S,,路人×4,5,GAME JAM,,,,游戏涌现出来了。,approved,,玩家=坐着不动的 NPC，被撞才会动
+school,学校,2,3,container,L,y,学生×15,,,,,,学生涌现出来了。,approved,,
+student,学生,2,2,,M,,,20,高考,,,,,approved,,
+gaokao,高考,2,4,concept,L,,试卷×40,,,,,,高考涌现出来了。,idea,,试卷像弹窗一样下雨
+site,工地,2,3,container,L,y,楼×3,,,,,,楼涌现出来了。,approved,,楼从地里长出来
+building,楼,2,3,,L,,,8,小区,,,,,approved,,
+compound,小区,2,3,,XL,,,3,房价,,,,,approved,,
+housingprice,房价,2,4,concept,L,,楼×1,,,,,上班族→房奴,房价涌现出来了。,approved,,一个只会变大的数字。撞上班族=背上一栋楼，变慢
+bank,银行,2,3,container,L,y,钱×50,,,,,资本→股市,钱涌现出来了。,approved,,
+stockmarket,股市,2,4,concept,L,,K线×20,,,,,,涨涌现出来了。,idea,,红绿柱子当物理物体喷
+tvstation,电视台,2,3,container,L,y,广告×10,,,,,,广告涌现出来了。,idea,,广告=带脑白金气质的物理广告牌
+ad,广告,2,1,,M,,,10,消费,,,,,idea,,
+tieba,贴吧,2,4,container,L,,网友×20,,,,,,贴吧涌现出来了。,approved,,
+netizen,网友,2,2,reproduce,M,,网友×2,30,互联网,,,,网友涌现出来了。,approved,,互相吵架（互相喷），天然连锁
+gameplay,游戏性,2,4,system,L,,,,,,,*→(冒血条),游戏性涌现出来了。,approved,,插曲 B：系统碎片×5 在丹田里坍缩而成。吐出后砸地→蓝屏→桌面插曲。撞到什么，什么头上冒血条
+economy,经济,2,4,container,XL,,公司×3,2,资本主义,,,,经济涌现出来了。,approved,,
+city,城市,3,4,,XL,,,5,文明,,,,,approved,,第二幕烘焙后的整块地砖，第三幕里是一个物体
+civilization,文明,3,5,container,XL,,卫星×6,3,历史,,,,文明涌现出来了。,approved,,
+satellite,卫星,3,4,,L,,,10,太空垃圾,,,,,idea,,绕地球转，是第三幕的子弹
+internet,互联网,3,5,container,XL,,网友×50,,,,,,互联网涌现出来了。,approved,,网民=极小的网友
+capitalism,资本主义,3,5,container,XL,,公司×10,,,,,,资本主义涌现出来了。,approved,,
+moon,月亮,3,5,container,XL,,月饼×30,,,,,,月饼涌现出来了。,idea,,
+sun,太阳,3,6,container,XL,,行星×8,,,,,,行星涌现出来了。,approved,,
+planet,行星,3,5,,XL,,,8,太阳系,,,,,approved,,
+solarsystem,太阳系,3,6,,XL,,,3,银河,,,,,approved,,
+galaxy,银河,3,6,container,XL,,时间×1,,,,,,时间涌现出来了。,approved,,
+time,时间,3,6,concept,L,,,,,,,,,approved,,一个钟。存在时所有物体速度×2，叠加
+consciousness,意识,3,6,concept,L,,问题×5,,,,,,意识涌现出来了。,idea,,"网民×100 的替代坍缩结果。问题=""我是谁""的实体文字"
+gamejam,GAME JAM,3,5,container,L,,开发者×4; 游戏×6,3,独立游戏,,,,GAME JAM涌现出来了。,approved,,插曲 C。四个人在网吧包夜。游戏×5→GAME JAM→游戏：递归
+developer,开发者,3,2,container,M,,游戏×1,,,,,,游戏涌现出来了。,approved,,长得像我们四个
+emergence,涌现,3,6,container,XL,,制作人员名单×20,,,,,,涌现涌现出来了！,approved,,终幕。全部坍缩成这一个实体文字。喷出名单→名单撞灰色小人→回冷开场
+credits,制作人员名单,3,1,,M,,,,,,,玩家→(回到冷开场),,approved,,物理的滚动字幕
+rain,雨,1,1,,S,,,,,,,,,idea,,= 水的下落版本，落地变成水
+taichi,太极,1,1,system,-,,,,,,,,,idea,,大爷周围的持续力场，把东西推开。不是实体，是区域
+fizz,气,1,1,system,-,,,,,,,,,idea,,饮料喷出的推进力。不是实体，是给饮料自己的冲量
+soundwave,声波,1,1,system,-,,,,,,,,,idea,,大喇叭的范围触发。不是实体，是一次范围检测
+overtime,加班,2,1,system,-,,,,,,,,,idea,,上班族头顶的小时钟，让它变慢。不是实体，是状态
+danwei,单位,1,3,container,L,y,上班族×6,,,,,,单位涌现出来了。,idea,,路人×12 的坍缩结果。中国式机构
+traffic,交通,2,4,concept,XL,,堵车×2,,,,,,交通涌现出来了。,idea,,堵车×3。一个大概念物体，撞到路会生成堵车
+esports,战队,2,3,container,L,,网瘾少年×8,,,,,,战队涌现出来了。,idea,,网瘾少年×10
+reinstall,系统重装,2,4,system,-,,,,,,,,系统重装涌现出来了。,idea,,触发假蓝屏→插曲 B 的事件物体，本身不存活
+toiletbowl,马桶,1,1,container,S,,水×10,,,,,,,idea,,可砍，跟公厕一起
+exam,试卷,2,1,,S,,,,,,,,,idea,,= 弹窗的学校版，贴脸
+kline,K线,2,1,,M,,,,,,,,,idea,,红绿柱子，红的往上飞，绿的往下砸
+consumption,消费,2,4,concept,L,,钱×30,,,,,,消费涌现出来了。,idea,,广告×10。喷钱但钱是负的（吸附路人口袋）——可砍
+history,历史,3,6,concept,XL,,文明×2,,,,,,历史涌现出来了。,idea,,文明×3。递归：历史又喷文明
+spacejunk,太空垃圾,3,4,container,L,,,,,,,,,idea,,卫星×10。绕圈的垃圾山，撞什么触发什么
+mooncake,月饼,3,1,,S,,,,,,,,,idea,,= 苹果的太空版
+question,问题,3,6,concept,L,,,,,,,,,idea,,"""我是谁""的实体文字，撞到什么什么就停下来不动三秒"
+indiegame,独立游戏,3,6,container,XL,,开发者×12,,,,,,独立游戏涌现出来了。,idea,,GAME JAM×3。不喷游戏，只喷更多开发者
+player,玩家,0,0,,-,,,,,,,,,approved,,特殊 id：玩家当前身体（小人 / 鼠标指针 / 挖掘机 / 地球）。名单撞玩家→回冷开场
+agent,中介,1,2,reproduce,M,,小广告×6,,,,,,中介涌现出来了。,idea,,小广告撞路人。到处贴小广告
+mortgage_slave,房奴,2,2,,M,,,,,,,,,idea,,房价撞上班族。背上一栋楼，移动变慢，被撞会把楼甩出去
+group,集团,2,4,reproduce,XL,,公司×3,3,经济,,,,集团涌现出来了。,idea,,公司撞公司
+sysfrag,系统碎片,1,4,system,S,,,5,游戏性,,,,系统涌现出来了。,approved,,插曲 B。从天上掉的实体 UI，五种外观：任务窗口 / 血条 / LEVEL UP 光柱 / 合成界面 /「涌现已失去」。落地 3 秒内对周围做它那个系统的事，然后失效。同 id 不同外观，所以任意 5 个都能坍缩
+char,字,D,1,,S,,,8,字幕,,,,,approved,,实体汉字（TextMesh）。L2 字幕结束后也会散成字
+caption,字幕,D,3,recursive,M,,字×8,,,,,,字幕涌现出来了。,approved,,一条 L2 彩虹实体字幕。被撞散成字，字再凑回字幕
+mycomputer,我的电脑,D,3,container,M,y,文件×8,,,,,,文件涌现出来了。,approved,,
+file,文件,D,1,,S,,,12,新建文件夹,,,,,approved,,
+newfolder,新建文件夹,D,2,reproduce,M,,新建文件夹×2,8,压缩包,,,,新建文件夹 (2) 涌现出来了。,approved,,喷出来的名字递增 (2)(3)(4)…。主要内存来源
+rar,压缩包,D,3,recursive,M,,新建文件夹×12,,,,,,解压完成。,approved,,坍缩=压缩，涌现=解压。砸它是陷阱，扔进回收站是正解
+minesweeper,扫雷,D,3,container,M,y,地雷×6,,,,,,地雷涌现出来了。,approved,,
+mine,地雷,D,1,system,S,,,,,,,,,approved,,被撞即爆炸：范围冲量 + 范围触发。桌面上唯一的爆炸
+solitaire,纸牌,D,3,container,M,y,扑克牌×52,,,,,,您赢了。,approved,,喷牌用胜利瀑布的弹跳轨迹
+card,扑克牌,D,1,,S,,,30,赌神,,,,,idea,,
+gambler,赌神,D,3,concept,M,,扑克牌×52,,,,,,赌神涌现出来了。,idea,,可砍。纸牌递归
+penguin,企鹅,D,3,container,M,y,消息×5,,,,,,您有新的消息。,approved,,聊天软件，不是那只企鹅
+message,消息,D,1,,S,,,10,群聊,,,,,approved,,滴滴声。可能是「帮我涌现 10 只鸽子」的玩笑任务（04 方向 3）
+groupchat,群聊,D,3,reproduce,M,,消息×20,,,,,,群聊涌现出来了。,approved,,内存炸弹
+browser,浏览器,D,3,container,M,y,弹窗×5,,,,,,弹窗涌现出来了。,approved,,蓝色 @ 图标
+mediaplayer,播放器,D,3,container,M,y,音符×8,,,,,,音乐涌现出来了。,approved,,
+musicnote,音符,D,1,system,S,,,,,,,,,approved,,落地发声 = 声波范围触发
+notepad,记事本,D,3,container,M,y,字×10,,,,,,字涌现出来了。,approved,,
+exe,涌现出来了_第二章.exe,D,4,system,L,y,,,,,,,内存不足，请关闭一些程序。,approved,,被任何东西击中=双击。内存高于阈值→弹内存不足；低于阈值→Loading→第二幕
+cursor,鼠标指针,D,0,,-,,,,,,,,,approved,,桌面插曲的玩家身体。按住=框选吸附，松开=拖拽甩出
+excavator,挖掘机,2,0,,-,,,,,,,,,approved,,第二幕的玩家身体
+earth,地球,3,0,,-,,,,,,,,,approved,,第三幕的玩家身体
