@@ -16,7 +16,7 @@
 | collapse_into | 坍缩成什么 | 另一行的 name |
 | eats | 吃什么、吃多少 | `名字×数量`，多种用 `\|` |
 | eat_emits | 吃够了喷什么 | `名字×数量` |
-| recipes | 被特定东西撞到的特殊结果 | `撞它的东西→结果`，多个用 `; ` |
+| recipes | 被特定东西撞到的特殊结果 | `撞它的东西→结果`，多个用 `; `，`*` = 任何东西 |
 | line | 系统通报字幕或 NPC 台词 | 通报体以句号结尾 |
 | status | 进度 | idea → approved → modeled → in-game → cut |
 | owner | 谁在做 | |
