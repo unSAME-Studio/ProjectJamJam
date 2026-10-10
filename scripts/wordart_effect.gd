@@ -22,10 +22,10 @@ func _process_custom_fx(c: CharFXTransform) -> bool:
 	var u: float = i / max(n - 1.0, 1.0)
 
 	var phase: float = t * freq * TAU - i * 0.85
-	c.offset.y += sin(phase) * amp
-	var s: float = 1.0 + bulge * (1.0 - abs(u - 0.5) * 2.0)
-	var rot: float = sin(phase) * 0.07
-	c.transform = Transform2D(rot, Vector2.ONE * s, 0.0, Vector2.ZERO)
+	# wave + WordArt arch (middle chars ride higher); glyph transform is left
+	# alone because RichTextLabel applies it around the line origin.
+	var arch: float = (1.0 - abs(u - 0.5) * 2.0) * bulge * amp * 2.5
+	c.offset.y += sin(phase) * amp - arch
 
 	if not c.outline:
 		var hue: float = fmod(hue0 + u * 0.8 + t * speed, 1.0)

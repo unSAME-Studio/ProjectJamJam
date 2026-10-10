@@ -43,8 +43,8 @@ func set_count(n: int) -> void:
 
 func _name_size() -> int:
 	if fullscreen:
-		return 120 + tier * 8
-	return 46 + tier * 11
+		return 150 + tier * 8
+	return 50 + tier * 12
 
 
 func _build() -> void:
@@ -55,7 +55,7 @@ func _build() -> void:
 	var name_chars: int = max(name_text.length() + (3 if _count > 1 else 0), 1)
 	var suffix_chars: int = max(suffix_text.length(), 1)
 	var name_w := int(name_chars * ns * 1.15) + ns
-	var name_h := int(ns * 1.9)
+	var name_h := int(ns * 1.55)
 	var suffix_w := int(suffix_chars * ss * 1.1) + ss
 	var suffix_h := int(ss * 1.5)
 	var w: int = max(name_w, suffix_w) + 40
@@ -65,8 +65,8 @@ func _build() -> void:
 
 	if fullscreen or tier >= 4:
 		_burst = Starburst.new()
-		_burst.size = Vector2(name_w * 1.25, name_h * 1.7)
-		_burst.position = Vector2((w - _burst.size.x) * 0.5, (name_h - _burst.size.y) * 0.5 + name_h * 0.1)
+		_burst.size = Vector2(name_w * 1.0 + ns * 0.5, name_h * 1.35)
+		_burst.position = Vector2((w - _burst.size.x) * 0.5, (name_h - _burst.size.y) * 0.5)
 		_burst.points = 18 if fullscreen else 14
 		if tier >= 5:
 			_burst.fill = Color(1.0, 0.3, 0.6)

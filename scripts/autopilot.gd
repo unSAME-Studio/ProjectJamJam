@@ -3,7 +3,7 @@ extends Node
 ## then prints the ledger and quits. Run with:
 ##   godot --headless --path . -- --autopilot
 
-const RUN_TIME := 40.0
+var run_time := 40.0
 const HOLD_TIME := 1.3
 
 var _world: Node3D
@@ -21,6 +21,9 @@ var _showcased := false
 func _ready() -> void:
 	_world = get_parent()
 	_player = _world.player
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--run="):
+			run_time = float(a.substr(6))
 	print("[autopilot] start")
 
 
@@ -31,7 +34,7 @@ func _physics_process(delta: float) -> void:
 	if _report_t > 5.0:
 		_report_t = 0.0
 		print("[autopilot] t=%.1f %s combo=%d" % [_t, Stats.summary(), Stats.combo])
-	if _t > RUN_TIME:
+	if _t > run_time:
 		_finish()
 		return
 	if not _shots.is_empty() and _t >= _shots[0]:
