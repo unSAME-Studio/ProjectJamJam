@@ -140,7 +140,9 @@ func _process(delta: float) -> void:
 func squash(node: Node3D, amount: float = 0.35, time: float = 0.25) -> void:
 	if not is_instance_valid(node):
 		return
-	var base: Vector3 = node.scale
+	if not node.has_meta("base_scale"):
+		node.set_meta("base_scale", node.scale)
+	var base: Vector3 = node.get_meta("base_scale")
 	var t := node.create_tween()
 	t.tween_property(node, "scale", base * Vector3(1.0 + amount, 1.0 - amount, 1.0 + amount), time * 0.3)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

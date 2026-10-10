@@ -30,6 +30,7 @@ var enlightened := false
 var is_npc := false
 var is_bird := false
 var life_left := -1.0
+var default_gravity := 1.0
 var _eat_area: Area3D
 var _wander_target: Vector3
 var _wander_wait := 0.0
@@ -103,6 +104,7 @@ func _ready() -> void:
 		_wander_wait = 0.2
 	if not def.eats.is_empty():
 		_make_eat_area()
+	default_gravity = gravity_scale
 	Stats.register(self)
 
 

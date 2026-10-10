@@ -235,7 +235,7 @@ func _hold_tick(delta: float) -> void:
 	_charge_label.text = "力量——" + "—".repeat(int(hold_time * 2.0))
 	var gp := gather_point()
 	var origin := global_position + Vector3(0, 0.8, 0)
-	_attracted.clear()
+	_restore_gravity()
 	for body in _field.get_overlapping_bodies():
 		if not (body is EmergentBody):
 			continue
@@ -261,8 +261,15 @@ func _hold_tick(delta: float) -> void:
 		# damp so they clump instead of orbiting
 		force -= b.linear_velocity * 2.5 * b.mass
 		b.apply_central_force(force)
-		b.gravity_scale = 0.15 if pd < 2.5 else 0.6
+		b.gravity_scale = b.default_gravity * (0.15 if pd < 2.5 else 0.6)
 		b.sleeping = false
+
+
+func _restore_gravity() -> void:
+	for b in _attracted:
+		if is_instance_valid(b):
+			b.gravity_scale = b.default_gravity
+	_attracted.clear()
 
 
 func _release() -> void:
@@ -287,7 +294,7 @@ func _release() -> void:
 	for b in _attracted:
 		if not is_instance_valid(b) or b.absorbing:
 			continue
-		b.gravity_scale = 1.0 if not b.is_bird else 0.35
+		b.gravity_scale = b.default_gravity
 		var spread := Vector3(randf_range(-1, 1), randf_range(-0.3, 0.6), randf_range(-1, 1)) * 0.18
 		var v: Vector3 = (dir + spread).normalized() * launch_speed
 		b.linear_velocity = v
@@ -322,6 +329,3 @@ func _release() -> void:
 	_cam_kick = 1.2 + 1.5 * power
 	Stats.record_release(power)
 	hold_time = 0.0
-	for b in _field.get_overlapping_bodies():
-		if b is EmergentBody and not b.is_bird and not b.def.anchored:
-			b.gravity_scale = 1.0
