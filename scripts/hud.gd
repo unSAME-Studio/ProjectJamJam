@@ -47,17 +47,18 @@ func _build() -> void:
 	_combo.scroll_active = false
 	_combo.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_combo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_combo.add_theme_font_override("normal_font", Boot.font_display)
+	_combo.add_theme_font_override("normal_font", WordArtLine.heavy_font(54, 0.45, 0.04))
 	_combo.add_theme_font_size_override("normal_font_size", 54)
 	_combo.add_theme_constant_override("outline_size", 12)
 	_combo.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.28))
 	_combo.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
 	_combo.add_theme_constant_override("shadow_offset_x", 4)
 	_combo.add_theme_constant_override("shadow_offset_y", 4)
-	_combo.install_effect(Caption.effect())
+	_combo.install_effect(WordArtEffect.new())
+	_combo.clip_contents = false
 	_combo.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo.size = Vector2(560, 110)
-	_combo.position = Vector2(-580, 16)
+	_combo.size = Vector2(560, 130)
+	_combo.position = Vector2(-580, 34)
 	_combo.pivot_offset = Vector2(560, 55)
 	_combo.visible = false
 	add_child(_combo)
