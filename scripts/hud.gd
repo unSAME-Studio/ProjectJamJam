@@ -23,6 +23,9 @@ var _bar_label: Label
 var _bar_fill: TextureRect
 var _bar_width := 0.0
 var _found: Label
+var _fever_rect: ColorRect
+var _fever_mat: ShaderMaterial
+var _fever_tween: Tween
 
 
 func _ready() -> void:
@@ -37,6 +40,7 @@ func _ready() -> void:
 	Stats.progress_changed.connect(_on_progress)
 	Stats.discovered.connect(_on_discovered)
 	Stats.stage_goal_reached.connect(_on_goal)
+	Stats.fever_changed.connect(_on_fever)
 	_set_started(false)
 	_on_progress(0.0, Stats.STAGE_GOALS[0], 0.0)
 
@@ -127,6 +131,16 @@ func _build() -> void:
 	_bar_fill.size = Vector2(0, 12)
 	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_root.add_child(_bar_fill)
+
+	_fever_rect = ColorRect.new()
+	_fever_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fever_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fever_mat = ShaderMaterial.new()
+	_fever_mat.shader = load("res://assets/shaders/fever_rainbow.gdshader")
+	_fever_rect.material = _fever_mat
+	_fever_rect.visible = false
+	add_child(_fever_rect)
+	move_child(_fever_rect, 0)
 
 	_popups = VBoxContainer.new()
 	_popups.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -254,19 +268,23 @@ func _on_combo(c: int) -> void:
 	_combo.modulate.a = 1.0
 	var sz: float = 54.0 + min(c, 40) * 1.2
 	_combo.add_theme_font_size_override("normal_font_size", int(sz))
-	var txt := "连涌 ×%d！" % c
+	var txt := ("狂热 连涌 ×%d！" if Stats.fever else "连涌 ×%d！") % c
 	_combo.text = "[right][wordart n=%d amp=%d freq=3 bulge=0.15 speed=0.6]%s[/wordart][/right]" % [txt.length(), int(sz * 0.12), txt]
 	var t := _combo.create_tween()
 	_combo.scale = Vector2.ONE * 1.25
 	t.tween_property(_combo, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	if c in [10, 30, 60, 100]:
+	if c in [10, 50, 100, 200]:
 		show_l3("连涌 ×%d" % c, "！！！", 4)
 
 
 func _on_progress(value: float, goal: float, gained: float) -> void:
 	var st: int = Stats.stage
 	var names: Array = Stats.STAGE_NAMES
-	var next_name: String = names[min(st, names.size() - 1)] if st < names.size() else "？"
+	if st >= names.size():
+		_bar_label.text = "%s　　第三幕 未完待续" % names[names.size() - 1]
+		_bar_fill.size.x = 552.0
+		return
+	var next_name: String = names[st]
 	_bar_label.text = "%s  ▸  %s　　涌现度 %d / %d" % [names[st - 1], next_name, int(value), int(goal)]
 	var target: float = 552.0 * clamp(value / goal, 0.0, 1.0)
 	var t := _bar_fill.create_tween()
@@ -275,6 +293,30 @@ func _on_progress(value: float, goal: float, gained: float) -> void:
 		_bar_root.scale = Vector2.ONE * 1.08
 		var p := _bar_root.create_tween()
 		p.tween_property(_bar_root, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _on_fever(on: bool) -> void:
+	# 涌现狂热: like Love Spinnin's fever — rainbow ring, wider FOV, faster
+	# player, more crits, and no more slow-mo while it lasts.
+	if _fever_tween and _fever_tween.is_valid():
+		_fever_tween.kill()
+	_fever_tween = create_tween()
+	_fever_tween.set_parallel(true)
+	var cam: Camera3D = _camera
+	if on:
+		_fever_rect.visible = true
+		_fever_tween.tween_method(func(v): _fever_mat.set_shader_parameter("opacity", v), 0.0, 0.55, 0.3)
+		if cam:
+			_fever_tween.tween_property(cam, "fov", 72.0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		show_l3("涌现狂热", "！！！", 5)
+		Juice.ui_sfx("rainbow", -4.0)
+		Juice.flash(Color(1, 0.9, 1, 0.35))
+	else:
+		_fever_tween.tween_method(func(v): _fever_mat.set_shader_parameter("opacity", v), 0.55, 0.0, 0.6)
+		if cam:
+			_fever_tween.tween_property(cam, "fov", 60.0, 0.6)
+		_fever_tween.chain().tween_callback(func(): _fever_rect.visible = false)
+		Juice.ui_sfx("Correct", -6.0)
 
 
 func _on_goal(_stage: int) -> void:

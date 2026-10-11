@@ -65,7 +65,9 @@ func _ready() -> void:
 	_spawn_pigeons(14)
 	_build_desaturate()
 	Stats.first_release.connect(_on_first_release)
-	Stats.stage_goal_reached.connect(func(_s): advance_stage())
+	Stats.stage_goal_reached.connect(func(st):
+		if st < 3:
+			advance_stage())
 	_ambient = AudioStreamPlayer.new()
 	_ambient.stream = load("res://assets/sounds/CityAmbience.ogg")
 	_ambient.volume_db = -16.0
@@ -179,6 +181,7 @@ func advance_stage() -> void:
 	if Stats.stage == 1:
 		_to_city()
 	else:
+		# 2 → Earth (once, automatically). At 3 only the debug key replays it.
 		_earth_preview()
 
 
@@ -215,6 +218,10 @@ func _to_city() -> void:
 		hud.show_l3("城市", "涌现出来了。", 5)
 		Juice.ui_sfx("chime", -2.0, 0.8)).set_delay(1.6)
 	t.tween_property(player, "k", CITY_K, 1.4).set_delay(1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func():
+		# the new body is the thing that just emerged
+		player.set_body("excavator")
+		hud.show_l2("挖掘机", "涌现出来了。", player.global_position + Vector3(0, 2, 0) * CITY_K, 4, "first")).set_delay(2.2)
 	t.tween_property(player, "cam_distance", 9.0 * CITY_K, 1.6).set_delay(3.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(player, "pitch", -30.0, 1.6).set_delay(3.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	t.tween_callback(func():
@@ -368,7 +375,7 @@ func _earth_preview() -> void:
 		cam.queue_free()
 		_set_space(0.0)
 		_earth_root.visible = false
-		Stats.enter_stage(2)
+		Stats.enter_stage(3)   # 地球: to be continued — the bar stops here
 		_end_cutscene())
 
 

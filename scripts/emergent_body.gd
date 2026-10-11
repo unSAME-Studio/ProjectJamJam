@@ -239,7 +239,8 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 		return
 
 	var factor := Stats.budget_factor()
-	var crit: bool = by_player and randf() < CRIT_BASE + CRIT_POWER * clamp((power - 0.9) / 0.5, 0.0, 1.0)
+	var crit_chance: float = CRIT_BASE + CRIT_POWER * clamp((power - 0.9) / 0.5, 0.0, 1.0) + (0.15 if Stats.fever else 0.0)
+	var crit: bool = by_player and randf() < crit_chance
 	if crit:
 		factor *= 2.0
 	var top := top_position()

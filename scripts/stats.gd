@@ -13,6 +13,7 @@ signal first_release
 signal progress_changed(value: float, goal: float, gained: float)
 signal discovered(def, count: int)
 signal stage_goal_reached(stage: int)
+signal fever_changed(on: bool)
 
 const MAX_BODIES := 320
 const COMBO_WINDOW := 1.5
@@ -20,7 +21,7 @@ const COLLAPSE_TICK := 0.25
 const COLLAPSE_RADIUS_BASE := 3.5
 const COLLAPSE_SETTLE := 3.0
 # 涌现度 needed to leave each stage (index = stage - 1).
-const STAGE_GOALS := [260.0, 420.0, 999999.0]
+const STAGE_GOALS := [260.0, 600.0, 999999.0]
 const STAGE_NAMES := ["街道", "城市", "地球"]
 
 var bodies: Array = []           # alive EmergentBody
@@ -38,6 +39,12 @@ var goal_reached := false
 var seen: Dictionary = {}         # name -> true, every def that has emerged
 var _recent: Array = []           # timestamps of emergences in the last second
 const CHAIN_RATE_CAP := 18        # passive chain reactions per second before they fizzle
+const FEVER_COMBO := 20           # 连涌 at which 涌现狂热 kicks in (and slow-mo stops)
+const FEVER_MIN_TIME := 4.0
+const COLLAPSE_COOLDOWN := 2.5    # the same result can't be produced again this soon
+var fever := false
+var _fever_min_end := 0.0
+var _collapse_cool: Dictionary = {}   # into name -> time it may collapse again
 var _collapse_timer := 0.0
 var _world: Node3D
 
@@ -56,6 +63,8 @@ func reset() -> void:
 	progress = 0.0
 	goal_reached = false
 	seen.clear()
+	fever = false
+	_collapse_cool.clear()
 
 
 func now() -> float:
@@ -101,13 +110,28 @@ func budget_factor() -> float:
 func record_emergence(def, emitted_def, pos: Vector3, count: int, by_player: bool, crit: bool = false) -> void:
 	emerge_count += 1
 	_recent.append(now())
-	combo += 1
-	combo_timer = COMBO_WINDOW
-	combo_changed.emit(combo)
+	_bump_combo()
 	var key = emitted_def if emitted_def else def
 	var is_new := _discover(key)
 	emerged.emit(def, emitted_def, pos, count, by_player, crit, is_new)
-	add_progress(1.0 + key.tier + (6.0 if is_new else 0.0) + (3.0 if crit else 0.0) + min(combo, 20) * 0.1)
+	# What you cause counts in full; chain reactions you merely started count ~1/3.
+	var pts := 1.0 + key.tier + (3.0 if crit else 0.0) + min(combo, 20) * 0.1
+	add_progress((pts if by_player else pts * 0.35) + (6.0 if is_new else 0.0))
+
+
+func no_slowmo() -> bool:
+	## Past 20 连涌 the game stops pausing to admire itself.
+	return fever or combo >= FEVER_COMBO
+
+
+func _bump_combo() -> void:
+	combo += 1
+	combo_timer = COMBO_WINDOW
+	combo_changed.emit(combo)
+	if not fever and combo >= FEVER_COMBO:
+		fever = true
+		_fever_min_end = now() + FEVER_MIN_TIME
+		fever_changed.emit(true)
 
 
 func emergence_rate() -> int:
@@ -159,10 +183,13 @@ func record_release(power: float) -> void:
 
 func _process(delta: float) -> void:
 	if combo > 0:
-		combo_timer -= delta
+		combo_timer -= delta / max(Engine.time_scale, 0.05)
 		if combo_timer <= 0.0:
 			combo = 0
 			combo_changed.emit(0)
+	if fever and combo == 0 and now() >= _fever_min_end:
+		fever = false
+		fever_changed.emit(false)
 	_collapse_timer -= delta
 	if _collapse_timer <= 0.0:
 		_collapse_timer = COLLAPSE_TICK
@@ -180,7 +207,7 @@ func _check_collapses() -> void:
 		if list.size() < def.collapse_n:
 			continue
 		var into = DB.get_def(def.collapse_into)
-		if into == null:
+		if into == null or now() < _collapse_cool.get(into.name, 0.0):
 			continue
 		var base_radius: float = COLLAPSE_RADIUS_BASE + float(def.tier) * 0.75
 		# Fresh spawns need to settle before they count; otherwise a collapse
@@ -209,12 +236,11 @@ func _collapse(group: Array, into) -> void:
 	for b in group:
 		b.absorb_to(center)
 	collapse_count += 1
-	combo += 1
-	combo_timer = COMBO_WINDOW
-	combo_changed.emit(combo)
+	_collapse_cool[into.name] = now() + COLLAPSE_COOLDOWN
+	_bump_combo()
 	collapsed.emit(into, center, group.size(), group[0].def)
 	_discover(into)
-	add_progress(4.0 * into.tier)
+	add_progress(2.5 * into.tier)
 	if _world:
 		_world.spawn_after(into, center, 0.35, group[0].size_mult)
 

@@ -96,7 +96,7 @@ func ui_sfx(kind: String, volume_db: float = 0.0, pitch: float = 1.0) -> AudioSt
 
 
 func slowmo(duration: float = 0.3, scale: float = 0.08) -> void:
-	if cinematic:
+	if cinematic or Stats.no_slowmo():
 		return
 	if _slowmo_tween and _slowmo_tween.is_valid():
 		_slowmo_tween.kill()
@@ -132,7 +132,7 @@ func reset_time() -> void:
 
 
 func hitstop(seconds: float = 0.05) -> void:
-	if cinematic:
+	if cinematic or Stats.no_slowmo():
 		return
 	# Short freeze; measured in real time, so the interval is scaled.
 	if _slowmo_tween and _slowmo_tween.is_valid() and Engine.time_scale < 0.5:

@@ -28,6 +28,11 @@ var _field: Area3D
 var _gas: CPUParticles3D
 var _stream: CPUParticles3D
 var locked := false            # cutscenes take the controls away
+var body := "human"            # human → excavator (city) → …
+var body_speed := 1.0
+var _human: Node3D
+var _excavator: Node3D
+var _boom: Node3D
 var k := 1.0:                  # body scale; grows between stages
 	set(v):
 		k = v
@@ -47,6 +52,7 @@ func _ready() -> void:
 	set_collision_mask_value(EmergentBody.LAYER_WORLD, true)
 	set_collision_mask_value(EmergentBody.LAYER_OBJECTS, true)
 	_build_visual()
+	_build_excavator()
 	_build_field()
 	_build_stream()
 	_hum = AudioStreamPlayer3D.new()
@@ -73,6 +79,8 @@ func _ready() -> void:
 
 func _build_visual() -> void:
 	# Placeholder 气功小人: capsule body, round head, two "qi" hands.
+	_human = Node3D.new()
+	body_visual.add_child(_human)
 	var body := CapsuleMesh.new()
 	body.radius = 0.36
 	body.height = 1.25
@@ -82,7 +90,7 @@ func _build_visual() -> void:
 	bmi.mesh = body
 	bmi.material_override = bm
 	bmi.position = Vector3(0, 0.65, 0)
-	body_visual.add_child(bmi)
+	_human.add_child(bmi)
 	var head := SphereMesh.new()
 	head.radius = 0.32
 	head.height = 0.64
@@ -92,7 +100,7 @@ func _build_visual() -> void:
 	hmi.mesh = head
 	hmi.material_override = hm
 	hmi.position = Vector3(0, 1.55, 0)
-	body_visual.add_child(hmi)
+	_human.add_child(hmi)
 	var eye := BoxMesh.new()
 	eye.size = Vector3(0.08, 0.04, 0.02)
 	var em := StandardMaterial3D.new()
@@ -102,7 +110,7 @@ func _build_visual() -> void:
 		e.mesh = eye
 		e.material_override = em
 		e.position = Vector3(x, 1.6, 0.3)
-		body_visual.add_child(e)
+		_human.add_child(e)
 	var belt := TorusMesh.new()
 	belt.inner_radius = 0.34
 	belt.outer_radius = 0.42
@@ -110,7 +118,7 @@ func _build_visual() -> void:
 	btm.mesh = belt
 	btm.material_override = Visuals.rainbow_material(2.0, 1.0)
 	btm.position = Vector3(0, 0.75, 0)
-	body_visual.add_child(btm)
+	_human.add_child(btm)
 	# gas burst particles at the dantian
 	_gas = CPUParticles3D.new()
 	_gas.one_shot = true
@@ -139,6 +147,66 @@ func _build_visual() -> void:
 	_gas.material_override = gmat
 	_gas.position = Vector3(0, 0.75, 0.3)
 	body_visual.add_child(_gas)
+
+
+func _build_excavator() -> void:
+	# 挖掘机技术哪家强. Same verb: hold = bucket down and scoop, release = fling.
+	_excavator = Node3D.new()
+	_excavator.visible = false
+	body_visual.add_child(_excavator)
+	var yellow := Color(0.98, 0.76, 0.05)
+	var dark := Color(0.16, 0.16, 0.18)
+	for x in [-0.42, 0.42]:
+		_excavator.add_child(_box(Vector3(0.32, 0.35, 1.5), Vector3(x, 0.18, 0), dark))
+	_excavator.add_child(_box(Vector3(1.0, 0.45, 1.1), Vector3(0, 0.58, -0.05), yellow))
+	_excavator.add_child(_box(Vector3(0.9, 0.35, 0.3), Vector3(0, 0.66, -0.62), dark))
+	_excavator.add_child(_box(Vector3(0.5, 0.62, 0.55), Vector3(-0.22, 1.1, -0.1), yellow))
+	_excavator.add_child(_box(Vector3(0.44, 0.3, 0.04), Vector3(-0.22, 1.18, 0.18), Color(0.25, 0.45, 0.8)))
+	var stripe := _box(Vector3(1.02, 0.08, 1.12), Vector3(0, 0.62, -0.05), Color.WHITE)
+	stripe.material_override = Visuals.rainbow_material(2.0, 1.0)
+	_excavator.add_child(stripe)
+	_boom = Node3D.new()
+	_boom.position = Vector3(0.22, 0.85, 0.35)
+	_boom.rotation.x = -0.5
+	_excavator.add_child(_boom)
+	_boom.add_child(_box(Vector3(0.16, 0.16, 1.15), Vector3(0, 0, 0.55), yellow))
+	var stick := Node3D.new()
+	stick.position = Vector3(0, 0, 1.1)
+	stick.rotation.x = 1.15
+	_boom.add_child(stick)
+	stick.add_child(_box(Vector3(0.12, 0.12, 0.8), Vector3(0, 0, 0.38), yellow))
+	stick.add_child(_box(Vector3(0.5, 0.32, 0.3), Vector3(0, -0.08, 0.82), dark))
+
+
+func _box(size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
+	var m := BoxMesh.new()
+	m.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh = m
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.7
+	mi.material_override = mat
+	mi.position = pos
+	return mi
+
+
+func set_body(kind: String) -> void:
+	body = kind
+	_human.visible = kind == "human"
+	_excavator.visible = kind == "excavator"
+	body_speed = 1.9 if kind == "excavator" else 1.0
+	Juice.burst(global_position + Vector3(0, 1, 0) * k, Color(1, 0.85, 0.2), 40, 12.0 * sqrt(k), 1.4 * k)
+	Juice.ring(global_position + Vector3(0, 0.5, 0) * k, Color(1, 0.9, 0.3, 0.8), 3.0 * k, 0.4)
+	Juice.sfx("powerup", global_position, 0.0, 0.8, 0.9)
+	Juice.squash(body_visual, 0.4, 0.4)
+
+
+func _boom_to(angle: float, time: float) -> void:
+	if _boom == null or body != "excavator":
+		return
+	var t := _boom.create_tween()
+	t.tween_property(_boom, "rotation:x", angle, time).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _build_stream() -> void:
@@ -229,7 +297,8 @@ func _physics_process(delta: float) -> void:
 	var dir := (cam_basis * Vector3(input.x, 0, input.y))
 	dir.y = 0
 	dir = dir.normalized()
-	var speed := SPEED * pow(k, 0.75) * (0.45 if holding else 1.0)
+	var fever_boost := 1.35 if Stats.fever else 1.0
+	var speed := SPEED * pow(k, 0.75) * body_speed * fever_boost * (0.45 if holding else 1.0)
 	velocity.x = move_toward(velocity.x, dir.x * speed, ACCEL * k * delta)
 	velocity.z = move_toward(velocity.z, dir.z * speed, ACCEL * k * delta)
 	if not is_on_floor():
@@ -301,6 +370,7 @@ func _begin_hold() -> void:
 	_charge_label.visible = true
 	_charge_label.scale = Vector3.ONE * 0.6
 	_stream.emitting = true
+	_boom_to(0.35, 0.25)
 	var t := body_visual.create_tween()
 	t.tween_property(body_visual, "scale", Vector3(1.15, 0.8, 1.15), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -370,7 +440,11 @@ func _release() -> void:
 
 	var origin := global_position + Vector3(0, 0.8, 0) * k
 	var dir := (facing + Vector3(0, 0.22, 0)).normalized()
-	var launch_speed: float = (9.0 + 20.0 * power) * sqrt(k)
+	var launch_speed: float = (9.0 + 20.0 * power) * sqrt(k) * (1.25 if Stats.fever else 1.0)
+	if body == "excavator":
+		var bt := _boom.create_tween()
+		bt.tween_property(_boom, "rotation:x", -1.1, 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		bt.tween_property(_boom, "rotation:x", -0.5, 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	var launched := 0
 	for b in _attracted:
 		if not is_instance_valid(b) or b.absorbing:

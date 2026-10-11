@@ -17,6 +17,8 @@ var _report_t := 0.0
 var _shots: Array = [2.0, 6.5, 12.0, 18.0, 26.0, 34.0]
 var _showcased := false
 var _stage_times: Array = []
+var _goal_probe := false
+var _fever_at := -1.0
 
 
 func _ready() -> void:
@@ -27,6 +29,8 @@ func _ready() -> void:
 			run_time = float(a.substr(6))
 		if a.begins_with("--shots-at="):
 			_shots = Array(a.substr(11).split(",")).map(func(x): return float(x))
+		if a.begins_with("--fever-at="):
+			_fever_at = float(a.substr(11))
 		if a.begins_with("--stages-at="):
 			_stage_times = Array(a.substr(12).split(",")).map(func(x): return float(x))
 	print("[autopilot] start")
@@ -52,6 +56,15 @@ func _physics_process(delta: float) -> void:
 		_stage_times.pop_front()
 		print("[autopilot] advance_stage at t=%.1f (stage %d)" % [_t, Stats.stage])
 		_world.advance_stage()
+	if _fever_at > 0.0 and _t >= _fever_at:
+		_fever_at = -1.0
+		Stats.combo = Stats.FEVER_COMBO - 1
+		Stats._bump_combo()
+	if _t > 32.0 and Stats.stage == 3 and not _goal_probe:
+		# Earth must not fire again: pour progress in and watch.
+		_goal_probe = true
+		Stats.add_progress(5000.0)
+		print("[autopilot] probe: stage=%d transitioning=%s" % [Stats.stage, _world.transitioning])
 	match _phase:
 		"seek":
 			if _target == null or not is_instance_valid(_target):
@@ -130,7 +143,7 @@ func _pick_target() -> EmergentBody:
 func _finish() -> void:
 	Input.action_release("emerge")
 	Input.action_release("move_forward")
-	print("[autopilot] DONE %s" % Stats.summary())
+	print("[autopilot] DONE %s stage=%d fever=%s body=%s" % [Stats.summary(), Stats.stage, Stats.fever, _player.body])
 	var names := {}
 	for b in Stats.bodies:
 		if is_instance_valid(b):
