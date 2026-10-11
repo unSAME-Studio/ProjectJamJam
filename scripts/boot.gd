@@ -7,12 +7,16 @@ const FONT_DISPLAY_PATH := "res://assets/fonts/ZCOOLQingKeHuangYou-Regular.ttf"
 const FONT_HAPPY_PATH := "res://assets/fonts/ZCOOLKuaiLe-Regular.ttf"
 const FONT_BRUSH_PATH := "res://assets/fonts/ZhiMangXing-Regular.ttf"
 const FONT_KAI_PATH := "res://assets/fonts/MaShanZheng-Regular.ttf"
+const FONT_HEAVY_PATH := "res://assets/fonts/NotoSansSC-Black.otf"
+const FONT_OBLIQUE_PATH := "res://assets/fonts/SmileySans-Oblique.ttf"
 
 var font: Font          # 文泉驿正黑：UI 正文、兜底
 var font_display: Font  # 站酷庆科黄油体：物体名字（WordArt）、实体字
 var font_happy: Font    # 站酷快乐体：「涌现出来了。」后缀、气泡
 var font_brush: Font    # 志莽行书：「力量——」、气功味
 var font_kai: Font      # 马善政楷书：备用
+var font_heavy: Font    # 思源黑体 Black：WordArt 艺术字（粗、直角）
+var font_oblique: Font  # 得意黑：斜体窄粗，备选
 var autopilot := false
 var shots_dir := ""
 
@@ -42,6 +46,8 @@ func _ready() -> void:
 	font_happy = _load_font(FONT_HAPPY_PATH)
 	font_brush = _load_font(FONT_BRUSH_PATH)
 	font_kai = _load_font(FONT_KAI_PATH)
+	font_heavy = _load_font(FONT_HEAVY_PATH)
+	font_oblique = _load_font(FONT_OBLIQUE_PATH)
 
 
 func _load_font(path: String) -> Font:
