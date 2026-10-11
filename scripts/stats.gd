@@ -21,7 +21,7 @@ const COLLAPSE_TICK := 0.25
 const COLLAPSE_RADIUS_BASE := 3.5
 const COLLAPSE_SETTLE := 3.0
 # 涌现度 needed to leave each stage (index = stage - 1).
-const STAGE_GOALS := [260.0, 600.0, 999999.0]
+const STAGE_GOALS := [300.0, 900.0, 999999.0]
 const STAGE_NAMES := ["街道", "城市", "地球"]
 
 var bodies: Array = []           # alive EmergentBody
@@ -115,7 +115,7 @@ func record_emergence(def, emitted_def, pos: Vector3, count: int, by_player: boo
 	var is_new := _discover(key)
 	emerged.emit(def, emitted_def, pos, count, by_player, crit, is_new)
 	# What you cause counts in full; chain reactions you merely started count ~1/3.
-	var pts := 1.0 + key.tier + (3.0 if crit else 0.0) + min(combo, 20) * 0.1
+	var pts: float = 1.0 + key.tier + (3.0 if crit else 0.0) + min(combo, 20) * 0.1
 	add_progress((pts if by_player else pts * 0.35) + (6.0 if is_new else 0.0))
 
 

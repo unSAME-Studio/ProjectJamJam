@@ -42,7 +42,7 @@ func _physics_process(delta: float) -> void:
 	_report_t += delta
 	if _report_t > 5.0:
 		_report_t = 0.0
-		print("[autopilot] t=%.1f %s combo=%d" % [_t, Stats.summary(), Stats.combo])
+		print("[autopilot] t=%.1f %s combo=%d stage=%d progress=%.0f seen=%d fever=%s" % [_t, Stats.summary(), Stats.combo, Stats.stage, Stats.progress, Stats.seen.size(), Stats.fever])
 	if _t > run_time:
 		_finish()
 		return
