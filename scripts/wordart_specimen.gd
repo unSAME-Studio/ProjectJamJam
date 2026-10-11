@@ -3,13 +3,18 @@ extends Control
 ## captions moving. With `-- --shots=DIR` it saves a burst of frames and quits.
 
 const ROWS := [
-	# [glyph px, name, suffix, palette]
-	[118, "城市", "涌现出来了。", "热彩"],
-	[72, "两个杀毒软件打起来了", "。", "热彩"],
-	[72, "资本", "涌现出来了。", "粉蓝紫"],
-	[72, "鸽子", "涌现出来了。", "红橙金"],
-	[72, "钱", "涌现出来了。", "绿蓝"],
+	# [glyph px, name, suffix, palette]   — fullscreen / stage captions
+	[110, "城市", "涌现出来了。", "热彩"],
+	[70, "两个杀毒软件打起来了", "。", "热彩"],
 ]
+const OBJECT_ROWS := [
+	# [name, tier, kind]   — single-object captions: only the name waves
+	["钱", 1, "normal"],
+	["资本", 3, "first"],
+	["鸽子", 2, "crit"],
+]
+
+const HUD_EXCLAIM := "涌现出来了！"
 
 var _shots_dir := ""
 var _t := 0.0
@@ -37,6 +42,12 @@ func _ready() -> void:
 		add_child(w)
 		w.position = Vector2((vp.x - w.size.x) * 0.5, y)
 		y += w.size.y * 0.78
+	for row in OBJECT_ROWS:
+		var c := ObjectCaption.new()
+		add_child(c)
+		c.setup(row[0], HUD_EXCLAIM if row[2] != "normal" else "涌现出来了。", row[1], row[2])
+		c.position = Vector2((vp.x - c.size.x) * 0.5, y - c.size.y * 0.15)
+		y += c.size.y * 0.62
 
 
 func _process(delta: float) -> void:

@@ -158,7 +158,9 @@ func rebuild() -> void:
 	wm.shader = WARP
 	wm.set_shader_parameter("band_frac", band / out_h)
 	wm.set_shader_parameter("amp", amp)
-	wm.set_shader_parameter("cycles", cycles)
+	# one wave cycle per ~7 chars, so a 1–2 char name bobs instead of twisting
+	var n_chars := float(name_text.length() + suffix_text.length())
+	wm.set_shader_parameter("cycles", cycles * clamp(n_chars / 7.0, 0.15, 1.6))
 	wm.set_shader_parameter("speed", speed)
 	wm.set_shader_parameter("phase0", randf() * TAU)
 	wm.set_shader_parameter("shadow_uv", Vector2(float(sh) / src.x, float(sh) / src.y))

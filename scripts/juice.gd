@@ -107,6 +107,24 @@ func slowmo(duration: float = 0.3, scale: float = 0.08) -> void:
 	_slowmo_tween.tween_property(Engine, "time_scale", 1.0, 0.25)
 
 
+var _flash_rect: ColorRect
+
+
+func flash(color: Color = Color(1, 1, 1, 0.4), time: float = 0.14) -> void:
+	if _flash_rect == null or not is_instance_valid(_flash_rect):
+		var layer := CanvasLayer.new()
+		layer.layer = 30
+		add_child(layer)
+		_flash_rect = ColorRect.new()
+		_flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(_flash_rect)
+	_flash_rect.color = color
+	var t := _flash_rect.create_tween()
+	t.set_ignore_time_scale(true)
+	t.tween_property(_flash_rect, "color:a", 0.0, time)
+
+
 func reset_time() -> void:
 	if _slowmo_tween and _slowmo_tween.is_valid():
 		_slowmo_tween.kill()

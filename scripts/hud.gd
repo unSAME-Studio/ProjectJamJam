@@ -180,7 +180,7 @@ func _queue_hints() -> void:
 	get_tree().create_timer(5.0).timeout.connect(func():
 		if Stats.emerge_count == 0:
 			hint("squeeze", "对着 ATM、消防栓、树 按住不放。"))
-	Stats.emerged.connect(func(_a, _b, _c, _d, _e):
+	Stats.emerged.connect(func(_a, _b, _c, _d, _e, _f, _g):
 		if Stats.emerge_count >= 3:
 			get_tree().create_timer(2.5).timeout.connect(func():
 				if Stats.collapse_count == 0:
@@ -217,11 +217,15 @@ static func split_line(line: String, fallback_name: String) -> Array:
 
 # ---------- events ----------
 
-func _on_emerged(def, emitted_def, pos: Vector3, _count: int, _by_player: bool) -> void:
+func _on_emerged(def, emitted_def, pos: Vector3, _count: int, _by_player: bool, crit: bool, first: bool) -> void:
 	var emitted_name: String = emitted_def.name if emitted_def else def.name
 	var parts := split_line(def.line, emitted_name)
 	var tier: int = max(emitted_def.tier if emitted_def else 1, 1)
-	show_l2(parts[0], parts[1], pos, tier)
+	var kind := "crit" if crit else ("first" if first else "normal")
+	show_l2(parts[0], parts[1], pos, tier, kind)
+	if crit:
+		popup("暴击！%s ×2" % emitted_name)
+		Juice.ui_sfx("powerup", -3.0, 1.3)
 	if (emitted_def and emitted_def.tier >= 3) or (def.anchored and def.size in ["L", "XL"]):
 		popup(parts[0] + parts[1])
 		Juice.ui_sfx("didi", -10.0, randf_range(0.95, 1.1))
@@ -293,10 +297,12 @@ func _on_archived(_def) -> void:
 
 # ---------- captions ----------
 
-func show_l2(name_text: String, suffix_text: String, anchor: Vector3, tier: int = 2) -> void:
-	var key := name_text + "|" + suffix_text
+func show_l2(name_text: String, suffix_text: String, anchor: Vector3, tier: int = 2, kind: String = "normal") -> void:
+	if kind != "normal":
+		suffix_text = exclaim(suffix_text)
+	var key := name_text + "|" + suffix_text + "|" + kind
 	for e in _l2:
-		if e.key == key and Stats.now() - e.time < MERGE_WINDOW + L2_LIFE:
+		if kind == "normal" and e.key == key and Stats.now() - e.time < MERGE_WINDOW + L2_LIFE:
 			e.count += 1
 			e.time = Stats.now()
 			e.anchor = anchor
@@ -307,12 +313,22 @@ func show_l2(name_text: String, suffix_text: String, anchor: Vector3, tier: int 
 		_l2.sort_custom(func(a, b): return a.tier < b.tier or (a.tier == b.tier and a.time < b.time))
 		var victim = _l2.pop_front()
 		victim.cap.queue_free()
-	var cap := Caption.new()
+	var cap := ObjectCaption.new()
 	add_child(cap)
-	cap.setup(name_text, suffix_text, tier, false)
-	_l2.append({"cap": cap, "anchor": anchor, "key": key, "count": 1, "tier": tier, "time": Stats.now(),
+	cap.setup(name_text, suffix_text, tier, kind)
+	var rank: int = tier + (3 if kind == "crit" else (2 if kind == "first" else 0))
+	_l2.append({"cap": cap, "anchor": anchor, "key": key, "count": 1, "tier": rank, "time": Stats.now(),
 		"offset": Vector2(randf_range(-40, 40), randf_range(-30, 10))})
 	cap.pop_in(1.6)
+
+
+static func exclaim(suffix: String) -> String:
+	## 「涌现出来了。」→「涌现出来了！」
+	if suffix.ends_with("。"):
+		return suffix.substr(0, suffix.length() - 1) + "！"
+	if suffix.ends_with("！"):
+		return suffix
+	return suffix + "！"
 
 
 func show_l3(name_text: String, suffix_text: String, tier: int = 5) -> void:

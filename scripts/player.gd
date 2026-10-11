@@ -237,6 +237,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y = 0.0
 	move_and_slide()
+	_shove_what_i_walk_into()
 
 	# Facing: aim with camera while holding, otherwise face movement.
 	var cam_forward: Vector3 = (cam_basis * Vector3(0, 0, -1)).normalized()
@@ -258,6 +259,32 @@ func _physics_process(delta: float) -> void:
 		_hold_tick(delta)
 		if Input.is_action_just_released("emerge") or not Input.is_action_pressed("emerge"):
 			_release()
+
+
+const SIZE_CLASS := {"S": 0, "M": 1, "L": 2, "XL": 3}
+const SIZE_GRIP := [1.0, 0.75, 0.18, 0.04]   # by how many size classes bigger than me
+
+
+func grip(b: EmergentBody) -> float:
+	## How much my verb moves this thing: small stuff fully, a house barely.
+	## Growing between stages (k) raises what counts as small.
+	var cls: float = SIZE_CLASS.get(b.def.size, 1) + log(b.size_mult) / log(3.5)
+	var me: float = log(k) / log(3.5)
+	var rel := int(round(cls - me))
+	return SIZE_GRIP[clamp(rel, 0, SIZE_GRIP.size() - 1)]
+
+
+func _shove_what_i_walk_into() -> void:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var b = c.get_collider()
+		if b is EmergentBody and not b.absorbing:
+			var push := -c.get_normal()
+			push.y = 0.0
+			if push.length() < 0.01:
+				continue
+			b.sleeping = false
+			b.apply_central_impulse(push.normalized() * b.mass * 1.6 * grip(b))
 
 
 func gather_point() -> Vector3:
@@ -309,7 +336,7 @@ func _hold_tick(delta: float) -> void:
 		var pd := pull.length()
 		if pd < 0.05:
 			continue
-		var strength: float = ATTRACT_STRENGTH * sqrt(k) * clamp(pd / k, 0.3, 3.0) / 3.0
+		var strength: float = ATTRACT_STRENGTH * sqrt(k) * clamp(pd / k, 0.3, 3.0) / 3.0 * grip(b)
 		var force: Vector3 = pull.normalized() * strength * b.mass
 		# damp so they clump instead of orbiting
 		force -= b.linear_velocity * 2.5 * b.mass
@@ -350,7 +377,7 @@ func _release() -> void:
 			continue
 		b.gravity_scale = b.default_gravity
 		var spread := Vector3(randf_range(-1, 1), randf_range(-0.3, 0.6), randf_range(-1, 1)) * 0.18
-		var v: Vector3 = (dir + spread).normalized() * launch_speed
+		var v: Vector3 = (dir + spread).normalized() * launch_speed * lerp(0.35, 1.0, grip(b))
 		b.linear_velocity = v
 		b.apply_torque_impulse(Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * b.mass * 2.0)
 		b.set_hot()
@@ -372,8 +399,13 @@ func _release() -> void:
 		if b.def.anchored:
 			if dist <= BLAST_RANGE * k + b.built.height * 0.3:
 				b.trigger(null, facing, true, 0.8 + power * 0.6)
+				if power >= 0.9:
+					b.uproot(dir * b.mass * 5.0 * grip(b))
+				else:
+					b.sleeping = false
+					b.apply_central_impulse(dir * b.mass * 2.0 * grip(b))
 		elif not b.is_hot():
-			b.apply_central_impulse((dir + to.normalized() * 0.4).normalized() * launch_speed * 0.6 * b.mass)
+			b.apply_central_impulse((dir + to.normalized() * 0.4).normalized() * launch_speed * 0.6 * b.mass * grip(b))
 			b.set_hot(1.2)
 			b.player_shot_until = b.hot_until
 

@@ -3,7 +3,7 @@ extends Node
 ## detection, physics-body budget (archiving). Everything that happens in the
 ## world reports here; the HUD and (later) ActDirector listen to the signals.
 
-signal emerged(def, emitted_def, pos: Vector3, count: int, by_player: bool)
+signal emerged(def, emitted_def, pos: Vector3, count: int, by_player: bool, crit: bool, first: bool)
 signal collapsed(into_def, pos: Vector3, n: int, source_def)
 signal combo_changed(combo: int)
 signal released(power: float)
@@ -20,7 +20,7 @@ const COLLAPSE_TICK := 0.25
 const COLLAPSE_RADIUS_BASE := 3.5
 const COLLAPSE_SETTLE := 3.0
 # 涌现度 needed to leave each stage (index = stage - 1).
-const STAGE_GOALS := [90.0, 170.0, 999999.0]
+const STAGE_GOALS := [260.0, 420.0, 999999.0]
 const STAGE_NAMES := ["街道", "城市", "地球"]
 
 var bodies: Array = []           # alive EmergentBody
@@ -36,6 +36,8 @@ var stage := 1
 var progress := 0.0
 var goal_reached := false
 var seen: Dictionary = {}         # name -> true, every def that has emerged
+var _recent: Array = []           # timestamps of emergences in the last second
+const CHAIN_RATE_CAP := 18        # passive chain reactions per second before they fizzle
 var _collapse_timer := 0.0
 var _world: Node3D
 
@@ -81,21 +83,42 @@ func unregister(b) -> void:
 	body_count_changed.emit(bodies.size())
 
 
+func loose_count() -> int:
+	## Rooted scenery (houses, towers, trees…) doesn't count against the budget.
+	var n := 0
+	for b in bodies:
+		if is_instance_valid(b) and not b.def.anchored:
+			n += 1
+	return n
+
+
 func budget_factor() -> float:
 	## 1.0 when the world is roomy, shrinking toward 0.25 near the cap.
-	var fill := float(bodies.size()) / MAX_BODIES
+	var fill := float(loose_count()) / MAX_BODIES
 	return clamp(1.3 - fill, 0.25, 1.0)
 
 
-func record_emergence(def, emitted_def, pos: Vector3, count: int, by_player: bool) -> void:
+func record_emergence(def, emitted_def, pos: Vector3, count: int, by_player: bool, crit: bool = false) -> void:
 	emerge_count += 1
+	_recent.append(now())
 	combo += 1
 	combo_timer = COMBO_WINDOW
 	combo_changed.emit(combo)
 	var key = emitted_def if emitted_def else def
 	var is_new := _discover(key)
-	emerged.emit(def, emitted_def, pos, count, by_player)
-	add_progress(1.0 + key.tier + (6.0 if is_new else 0.0) + min(combo, 20) * 0.1)
+	emerged.emit(def, emitted_def, pos, count, by_player, crit, is_new)
+	add_progress(1.0 + key.tier + (6.0 if is_new else 0.0) + (3.0 if crit else 0.0) + min(combo, 20) * 0.1)
+
+
+func emergence_rate() -> int:
+	var t := now() - 1.0
+	while not _recent.is_empty() and _recent[0] < t:
+		_recent.pop_front()
+	return _recent.size()
+
+
+func chain_saturated() -> bool:
+	return emergence_rate() >= CHAIN_RATE_CAP
 
 
 func is_seen(def) -> bool:
@@ -197,7 +220,8 @@ func _collapse(group: Array, into) -> void:
 
 
 func _enforce_budget() -> void:
-	if bodies.size() <= MAX_BODIES:
+	var loose := loose_count()
+	if loose <= MAX_BODIES:
 		return
 	# Archive the oldest small, cold, loose things first.
 	var victims := bodies.filter(func(b):
@@ -205,7 +229,7 @@ func _enforce_budget() -> void:
 	if victims.is_empty():
 		victims = bodies.filter(func(b):
 			return is_instance_valid(b) and not b.def.anchored and not b.absorbing)
-	var excess := bodies.size() - MAX_BODIES + 12
+	var excess := loose - MAX_BODIES + 12
 	for i in min(excess, victims.size()):
 		var b = victims[i]
 		recycled += 1

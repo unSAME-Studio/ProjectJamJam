@@ -4,7 +4,6 @@ extends Node3D
 ##   街道 (k=1) → 城市 (k=3.5, player grows, buildings rise) → 地球 (preview:
 ##   camera pulls out to orbit, then comes back down).
 
-const CITY := "res://assets/models/city/"
 const CITY_K := 3.5
 const GROUND_SIZE := 1800.0
 
@@ -33,7 +32,6 @@ const CITY_BUILDINGS := [
 	["公司", Vector3(-55, 0, 65)], ["网吧", Vector3(0, 0, 75)], ["银行", Vector3(115, 0, -20)],
 	["公司", Vector3(-115, 0, -25)], ["学校", Vector3(110, 0, 60)], ["工地", Vector3(-110, 0, 55)],
 ]
-const SKYLINE_SIGNS := ["宾馆", "发廊", "KTV", "超市", "移动", "网吧", "药房", "大酒店", "电器城", "足浴", "彩票", "影楼"]
 
 var player: Player
 var hud: CanvasLayer
@@ -98,10 +96,11 @@ func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool, scale_k: float =
 	var b := EmergentBody.create(def, sk)
 	_bodies_root.add_child(b)
 	if def.anchored:
-		# Fixed things grow out of the ground where they land.
+		# Rooted things grow out of the ground where they land.
+		if velocity != Vector3.ZERO:
+			pos += Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)) * sk
 		pos.y = 0.0
 		velocity = Vector3.ZERO
-		pos += Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)) * sk
 	b.global_position = pos
 	b.rotation.y = randf_range(0, TAU)
 	if velocity != Vector3.ZERO:
@@ -264,7 +263,7 @@ func _build_city() -> Array:
 			var base: Vector3 = b.visual.scale
 			b.visual.scale = Vector3(base.x, base.y * 0.01, base.z)
 			items.append({"node": b, "visual": b.visual, "delay": entry[1].length() / 180.0, "kind": "body", "base": base})
-	# static skyline
+	# skyline: physical, squeezable towers
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	for ring in [[165.0, 22], [250.0, 30], [360.0, 40]]:
@@ -273,60 +272,13 @@ func _build_city() -> Array:
 		for i in n:
 			var a := TAU * float(i) / n + rng.randf_range(-0.05, 0.05)
 			var pos := Vector3(cos(a) * r, 0, sin(a) * r) + Vector3(rng.randf_range(-15, 15), 0, rng.randf_range(-15, 15))
-			var h := rng.randf_range(20.0, 70.0) * (r / 165.0)
-			var w := rng.randf_range(14.0, 26.0)
-			var node := _skyline_tower(Vector3(w, h, w * rng.randf_range(0.7, 1.2)), pos, SKYLINE_SIGNS[rng.randi() % SKYLINE_SIGNS.size()], rng)
-			items.append({"node": node, "visual": node.get_child(0), "delay": r / 180.0 + rng.randf_range(0.0, 0.3), "kind": "static"})
+			var t := _spawn_prop("高楼", pos, rad_to_deg(atan2(-pos.x, -pos.z)), r / 165.0)
+			if t:
+				var base: Vector3 = t.visual.scale
+				t.visual.scale = Vector3(base.x, base.y * 0.01, base.z)
+				items.append({"node": t, "visual": t.visual, "delay": r / 180.0 + rng.randf_range(0.0, 0.3), "kind": "body", "base": base})
 	return items
 
-
-func _skyline_tower(size: Vector3, pos: Vector3, sign: String, rng: RandomNumberGenerator) -> StaticBody3D:
-	var body := StaticBody3D.new()
-	body.collision_layer = 1
-	body.collision_mask = 0
-	var vis := Node3D.new()
-	body.add_child(vis)
-	var m := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = size
-	m.mesh = bm
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color.from_hsv(rng.randf(), rng.randf_range(0.1, 0.35), rng.randf_range(0.7, 0.95))
-	m.material_override = mat
-	m.position.y = size.y * 0.5
-	vis.add_child(m)
-	var win := StandardMaterial3D.new()
-	win.albedo_color = Color(0.55, 0.8, 1.0)
-	win.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	var floors := int(size.y / 6.0)
-	for f in floors:
-		var s := MeshInstance3D.new()
-		var sm := BoxMesh.new()
-		sm.size = Vector3(size.x * 0.84, 1.6, size.z * 1.01)
-		s.mesh = sm
-		s.material_override = win
-		s.position.y = 3.0 + f * 6.0
-		vis.add_child(s)
-	var l := Label3D.new()
-	l.text = sign
-	l.font = Boot.font_display
-	l.font_size = 64
-	l.pixel_size = size.x * 0.6 / 64.0 / max(sign.length(), 1)
-	l.outline_size = 10
-	l.modulate = Color.from_hsv(rng.randf(), 0.8, 1.0)
-	l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	l.position.y = size.y + size.x * 0.25
-	vis.add_child(l)
-	var cs := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	cs.shape = box
-	cs.position.y = size.y * 0.5
-	body.add_child(cs)
-	add_child(body)
-	body.global_position = pos
-	vis.scale = Vector3(1, 0.01, 1)
-	return body
 
 
 func _rise(items: Array, total: float) -> void:
@@ -594,46 +546,30 @@ func _build_ground() -> void:
 
 
 func _build_props() -> void:
-	# Borrowed low-poly city pieces as static scenery with box collisions.
-	var houses := ["house2.obj", "house3.obj", "small_buildingB.obj"]
+	# Borrowed low-poly city pieces — as physical, emergent objects too.
 	var spots := [
 		[Vector3(-22, 0, -18), 0.0], [Vector3(-10, 0, -20), 0.0], [Vector3(12, 0, -20), 0.0], [Vector3(24, 0, -18), 0.0],
 		[Vector3(-26, 0, 0), 90.0], [Vector3(28, 0, 2), -90.0], [Vector3(-24, 0, 22), 180.0], [Vector3(26, 0, 22), 180.0],
 		[Vector3(-8, 0, 26), 180.0], [Vector3(10, 0, 26), 180.0],
 	]
-	for i in spots.size():
-		_place_static(CITY + houses[i % houses.size()], spots[i][0], spots[i][1], 7.0 + (i % 3) * 1.5)
+	for sp in spots:
+		_spawn_prop("房子", sp[0], sp[1])
 	for i in 4:
-		_place_static(CITY + "Bench.obj", Vector3(-6 + i * 4, 0, -5.5), 0.0, 0.9)
-	_place_static(CITY + "busstop.obj", Vector3(6, 0, 7.5), 180.0, 3.0)
-	_place_static(CITY + "trafficlight.obj", Vector3(-4.5, 0, 6.5), 0.0, 4.0)
+		_spawn_prop("长椅", Vector3(-6 + i * 4, 0, -5.5), 0.0)
+	_spawn_prop("公交站", Vector3(6, 0, 7.5), 180.0)
+	_spawn_prop("红绿灯", Vector3(-4.5, 0, 6.5), 0.0)
 
 
-func _place_static(path: String, pos: Vector3, yaw_deg: float, height: float) -> void:
-	if not ResourceLoader.exists(path):
-		return
-	var mesh: Mesh = load(path)
-	if mesh == null:
-		return
-	var body := StaticBody3D.new()
-	body.collision_layer = 1
-	body.collision_mask = 0
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	var aabb := mesh.get_aabb()
-	var s: float = height / max(aabb.size.y, 0.001)
-	mi.scale = Vector3.ONE * s
-	mi.position = Vector3(-aabb.get_center().x * s, -aabb.position.y * s, -aabb.get_center().z * s)
-	body.add_child(mi)
-	var cs := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = aabb.size * s
-	cs.shape = box
-	cs.position = Vector3(0, aabb.size.y * s * 0.5, 0)
-	body.add_child(cs)
-	add_child(body)
-	body.global_position = pos
-	body.rotation.y = deg_to_rad(yaw_deg)
+func _spawn_prop(def_name: String, pos: Vector3, yaw_deg: float, sk: float = 1.0) -> EmergentBody:
+	var def = DB.get_def(def_name)
+	if def == null:
+		push_warning("no def for %s" % def_name)
+		return null
+	var b := _do_spawn(def, pos, Vector3.ZERO, false, sk, false)
+	if b:
+		b.rotation.y = deg_to_rad(yaw_deg)
+	return b
+
 
 
 func _build_desaturate() -> void:

@@ -87,8 +87,8 @@ func _showcase_captions() -> void:
 	var p: Vector3 = _player.global_position
 	var f: Vector3 = _player.facing
 	hud.show_l2("钱", "涌现出来了。", p + f * 4.0 + Vector3(-3, 0, 0), 1)
-	hud.show_l2("资本", "涌现出来了。", p + f * 6.0 + Vector3(3, 1, 0), 3)
-	hud.show_l2("两个杀毒软件打起来了", "。", p + f * 8.0 + Vector3(0, 2, 0), 4)
+	hud.show_l2("资本", "涌现出来了。", p + f * 6.0 + Vector3(3, 1, 0), 3, "first")
+	hud.show_l2("鸽子", "涌现出来了。", p + f * 8.0 + Vector3(0, 2, 0), 2, "crit")
 	hud.show_l3("游戏", "涌现出来了。", 4)
 	Stats.combo = 23
 	Stats.combo_timer = 3.0

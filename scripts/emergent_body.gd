@@ -14,6 +14,8 @@ const EMIT_HOT_TIME := 1.0
 const TRIGGER_COOLDOWN := 1.5
 const HIT_SPEED := 6.0
 const SQUEEZE_TIME := 0.9
+const CRIT_BASE := 0.08          # crit chance on any player-caused emergence…
+const CRIT_POWER := 0.25         # …plus up to this much more for hard hits
 
 const NPC_IDS := ["person", "worker", "boss", "netkid", "agent", "developer", "student", "netizen", "grandpa"]
 
@@ -79,6 +81,8 @@ func _ready() -> void:
 	set_collision_mask_value(LAYER_OBJECTS, true)
 
 	mass = {"S": 0.4, "M": 2.0, "L": 12.0, "XL": 40.0}.get(def.size, 1.0) * size_mult * size_mult
+	if def.anchored:
+		mass *= 4.0
 	contact_monitor = true
 	max_contacts_reported = 4
 	linear_damp = 0.15
@@ -87,8 +91,13 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 	if def.anchored:
-		freeze = true
-		freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
+		# Rooted, not frozen: heavy, upright, slides when shoved, and topples
+		# once uprooted (see uproot()). Everything in the world has physics.
+		axis_lock_angular_x = true
+		axis_lock_angular_z = true
+		linear_damp = 2.0
+		angular_damp = 3.0
+		sleeping = true
 	if is_npc:
 		axis_lock_angular_x = true
 		axis_lock_angular_z = true
@@ -102,6 +111,8 @@ func _ready() -> void:
 	if is_water:
 		life_left = randf_range(7.0, 10.0)
 		linear_damp = 0.5
+	if def.id == "apple":
+		life_left = randf_range(26.0, 34.0)
 	if def.id == "flood":
 		life_left = 14.0
 		linear_damp = 3.0
@@ -133,6 +144,19 @@ func set_hot(t: float = HOT_TIME) -> void:
 
 func is_player_shot() -> bool:
 	return Stats.now() < player_shot_until
+
+
+func uproot(impulse: Vector3 = Vector3.ZERO) -> void:
+	## A rooted thing gets knocked loose: free to tip over from now on.
+	if not def.anchored or absorbing:
+		return
+	axis_lock_angular_x = false
+	axis_lock_angular_z = false
+	linear_damp = 0.3
+	angular_damp = 1.0
+	sleeping = false
+	if impulse != Vector3.ZERO:
+		apply_impulse(impulse, Vector3(0, built.height * 0.8, 0))
 
 
 func top_position() -> Vector3:
@@ -206,8 +230,8 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 				_transform_into(into, world)
 				return
 
-	if def.emits.is_empty():
-		# Nothing inside, but it still reacts.
+	if def.emits.is_empty() or (not by_player and Stats.chain_saturated()):
+		# Nothing inside (or the world is already erupting): it still reacts.
 		Juice.squash(visual, 0.25, 0.3)
 		Juice.sfx("impact", global_position, -4.0)
 		if is_npc:
@@ -215,6 +239,9 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 		return
 
 	var factor := Stats.budget_factor()
+	var crit: bool = by_player and randf() < CRIT_BASE + CRIT_POWER * clamp((power - 0.9) / 0.5, 0.0, 1.0)
+	if crit:
+		factor *= 2.0
 	var top := top_position()
 	var total := 0
 	var emitted_def = null
@@ -239,7 +266,14 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 	Juice.burst(top, built.color, 14 + total, (6.0 + total * 0.1) * sqrt(size_mult), (0.8 if def.size == "S" else 1.2) * size_mult)
 	var tier_boost: int = max(emitted_def.tier if emitted_def else 1, def.tier)
 	var fresh: bool = emitted_def != null and not Stats.is_seen(emitted_def)
-	if by_player and (tier_boost >= 3 or fresh):
+	if crit:
+		Juice.reset_time()
+		Juice.hitstop(0.12)
+		Juice.shake(0.5, 0.35)
+		Juice.flash(Color(1, 1, 0.85, 0.45))
+		Juice.burst(top, Color(1.0, 0.85, 0.1), 40, 14.0 * sqrt(size_mult), 1.6 * size_mult)
+		Juice.sfx("explosion", top, -2.0, 1.1, 1.3)
+	elif by_player and (tier_boost >= 3 or fresh):
 		Juice.hitstop(0.07)
 		Juice.shake(0.3, 0.25)
 	elif by_player:
@@ -255,7 +289,7 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 	if is_npc:
 		_npc_hit()
 
-	Stats.record_emergence(def, emitted_def, top, total, by_player)
+	Stats.record_emergence(def, emitted_def, top, total, by_player, crit)
 
 
 func _transform_into(into, world: Node) -> void:
@@ -280,6 +314,8 @@ func _on_body_entered(body: Node) -> void:
 		var mine: float = linear_velocity.length() if not freeze else 0.0
 		if other.is_hot() and speed > HIT_SPEED:
 			var d := (global_position - other.global_position).normalized()
+			if def.anchored and other.mass * speed > mass * 2.5:
+				uproot(d * other.mass * speed * 0.5)
 			trigger(other, d, other.is_player_shot(), clamp(speed / 12.0, 0.6, 1.4))
 		elif is_hot() and mine > HIT_SPEED and not other.is_hot():
 			# I am the bullet; the thing I hit reacts.

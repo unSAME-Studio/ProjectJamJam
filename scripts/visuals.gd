@@ -80,6 +80,19 @@ static func build(def) -> Built:
 			_build_croc(b)
 		"flood":
 			_build_flood(b)
+		"house":
+			_model(b, ["house2.obj", "house3.obj", "small_buildingB.obj"].pick_random(), randf_range(7.0, 9.5))
+		"bench":
+			_model(b, "Bench.obj", 0.9)
+		"busstop":
+			_model(b, "busstop.obj", 3.0)
+		"trafficlight":
+			_model(b, "trafficlight.obj", 4.0)
+		"tower":
+			var tw := randf_range(14.0, 24.0)
+			_build_tower(b, Vector3(tw, randf_range(24.0, 60.0), tw * randf_range(0.7, 1.2)),
+				Color.from_hsv(randf(), randf_range(0.1, 0.35), randf_range(0.7, 0.95)),
+				["宾馆", "发廊", "KTV", "超市", "移动", "药房", "大酒店", "电器城", "足浴", "彩票", "影楼"].pick_random())
 		"building":
 			_build_tower(b, Vector3(2.4, 3.4, 2.4), _hash_color(def.name, 0.35, 0.85), "楼")
 		"company":
@@ -517,10 +530,11 @@ static func _build_tower(b: Built, size: Vector3, color: Color, sign: String, si
 		strip.size = Vector3(size.x * 0.82, 0.35, size.z * 1.02)
 		root.add_child(_mi(strip, win_mat, Vector3(0, 0.75 + f * (size.y - 0.8) / floors, 0)))
 	var board := BoxMesh.new()
-	var bw: float = max(size.x * 0.9, sign.length() * 0.9)
-	board.size = Vector3(bw, 0.9, 0.15)
-	root.add_child(_mi(board, _mat(Color(0.8, 0.1, 0.1)), Vector3(0, size.y + 0.5, size.z * 0.3)))
-	root.add_child(_label(sign, Vector3(0, size.y + 0.5, size.z * 0.3 + 0.1), 0.75, sign_color))
+	var ls: float = max(0.75, size.x * 0.11)
+	var bw: float = max(size.x * 0.9, sign.length() * ls * 1.2)
+	board.size = Vector3(bw, ls * 1.2, 0.15 * ls / 0.75)
+	root.add_child(_mi(board, _mat(Color(0.8, 0.1, 0.1)), Vector3(0, size.y + ls * 0.66, size.z * 0.3)))
+	root.add_child(_label(sign, Vector3(0, size.y + ls * 0.66, size.z * 0.3 + 0.1 * ls / 0.75 + 0.02), ls, sign_color))
 	b.visual = root
 	var s := BoxShape3D.new()
 	s.size = size
