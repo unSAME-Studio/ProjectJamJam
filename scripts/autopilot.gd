@@ -16,6 +16,7 @@ var _used: Array = []
 var _report_t := 0.0
 var _shots: Array = [2.0, 6.5, 12.0, 18.0, 26.0, 34.0]
 var _showcased := false
+var _stage_times: Array = []
 
 
 func _ready() -> void:
@@ -24,6 +25,10 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--run="):
 			run_time = float(a.substr(6))
+		if a.begins_with("--shots-at="):
+			_shots = Array(a.substr(11).split(",")).map(func(x): return float(x))
+		if a.begins_with("--stages-at="):
+			_stage_times = Array(a.substr(12).split(",")).map(func(x): return float(x))
 	print("[autopilot] start")
 
 
@@ -43,6 +48,10 @@ func _physics_process(delta: float) -> void:
 	if not _showcased and _t >= 1.2:
 		_showcased = true
 		_showcase_captions()
+	if not _stage_times.is_empty() and _t >= _stage_times[0]:
+		_stage_times.pop_front()
+		print("[autopilot] advance_stage at t=%.1f (stage %d)" % [_t, Stats.stage])
+		_world.advance_stage()
 	match _phase:
 		"seek":
 			if _target == null or not is_instance_valid(_target):
@@ -52,7 +61,7 @@ func _physics_process(delta: float) -> void:
 					return
 			var to := _target.global_position - _player.global_position
 			to.y = 0.0
-			if to.length() < 3.0 + _target.built.height * 0.3 or _phase_t > 8.0:
+			if to.length() < 3.0 * _player.k + _target.built.height * 0.3 or _phase_t > 8.0:
 				Input.action_release("move_forward")
 				_set_phase("hold")
 				Input.action_press("emerge")

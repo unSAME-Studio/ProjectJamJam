@@ -10,12 +10,18 @@ signal released(power: float)
 signal body_count_changed(n: int)
 signal archived(def)
 signal first_release
+signal progress_changed(value: float, goal: float, gained: float)
+signal discovered(def, count: int)
+signal stage_goal_reached(stage: int)
 
 const MAX_BODIES := 320
 const COMBO_WINDOW := 1.5
 const COLLAPSE_TICK := 0.25
 const COLLAPSE_RADIUS_BASE := 3.5
 const COLLAPSE_SETTLE := 3.0
+# 涌现度 needed to leave each stage (index = stage - 1).
+const STAGE_GOALS := [90.0, 170.0, 999999.0]
+const STAGE_NAMES := ["街道", "城市", "地球"]
 
 var bodies: Array = []           # alive EmergentBody
 var buckets: Dictionary = {}     # name -> Array[EmergentBody]
@@ -26,8 +32,28 @@ var collapse_count := 0
 var release_count := 0
 var recycled := 0
 var has_released := false
+var stage := 1
+var progress := 0.0
+var goal_reached := false
+var seen: Dictionary = {}         # name -> true, every def that has emerged
 var _collapse_timer := 0.0
 var _world: Node3D
+
+
+func reset() -> void:
+	bodies.clear()
+	buckets.clear()
+	combo = 0
+	combo_timer = 0.0
+	emerge_count = 0
+	collapse_count = 0
+	release_count = 0
+	recycled = 0
+	has_released = false
+	stage = 1
+	progress = 0.0
+	goal_reached = false
+	seen.clear()
 
 
 func now() -> float:
@@ -66,7 +92,38 @@ func record_emergence(def, emitted_def, pos: Vector3, count: int, by_player: boo
 	combo += 1
 	combo_timer = COMBO_WINDOW
 	combo_changed.emit(combo)
+	var key = emitted_def if emitted_def else def
+	var is_new := _discover(key)
 	emerged.emit(def, emitted_def, pos, count, by_player)
+	add_progress(1.0 + key.tier + (6.0 if is_new else 0.0) + min(combo, 20) * 0.1)
+
+
+func is_seen(def) -> bool:
+	return seen.has(def.name)
+
+
+func _discover(def) -> bool:
+	if seen.has(def.name):
+		return false
+	seen[def.name] = true
+	discovered.emit(def, seen.size())
+	return true
+
+
+func add_progress(amount: float) -> void:
+	progress += amount
+	var goal: float = STAGE_GOALS[min(stage - 1, STAGE_GOALS.size() - 1)]
+	progress_changed.emit(progress, goal, amount)
+	if not goal_reached and progress >= goal:
+		goal_reached = true
+		stage_goal_reached.emit(stage)
+
+
+func enter_stage(n: int) -> void:
+	stage = n
+	progress = 0.0
+	goal_reached = false
+	progress_changed.emit(0.0, STAGE_GOALS[min(stage - 1, STAGE_GOALS.size() - 1)], 0.0)
 
 
 func record_release(power: float) -> void:
@@ -102,15 +159,16 @@ func _check_collapses() -> void:
 		var into = DB.get_def(def.collapse_into)
 		if into == null:
 			continue
-		var radius: float = COLLAPSE_RADIUS_BASE + float(def.tier) * 0.75
+		var base_radius: float = COLLAPSE_RADIUS_BASE + float(def.tier) * 0.75
 		# Fresh spawns need to settle before they count; otherwise a collapse
 		# product that emits its own ingredients re-collapses every tick.
 		var t := now()
 		var candidates := list.filter(func(b): return is_instance_valid(b) and not b.absorbing and t - b.spawn_time > COLLAPSE_SETTLE)
 		for seed in candidates:
+			var radius: float = base_radius * seed.size_mult
 			var near := []
 			for other in candidates:
-				if other.global_position.distance_to(seed.global_position) <= radius:
+				if other.size_mult == seed.size_mult and other.global_position.distance_to(seed.global_position) <= radius:
 					near.append(other)
 			if near.size() >= def.collapse_n:
 				near.sort_custom(func(a, b):
@@ -132,8 +190,10 @@ func _collapse(group: Array, into) -> void:
 	combo_timer = COMBO_WINDOW
 	combo_changed.emit(combo)
 	collapsed.emit(into, center, group.size(), group[0].def)
+	_discover(into)
+	add_progress(4.0 * into.tier)
 	if _world:
-		_world.spawn_after(into, center, 0.35)
+		_world.spawn_after(into, center, 0.35, group[0].size_mult)
 
 
 func _enforce_budget() -> void:

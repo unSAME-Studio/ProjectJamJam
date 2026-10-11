@@ -31,6 +31,8 @@ var is_npc := false
 var is_bird := false
 var life_left := -1.0
 var default_gravity := 1.0
+var size_mult := 1.0           # stage scale this body was born at
+var player_shot_until := 0.0   # launched by the player's release (for hit feel)
 var _eat_area: Area3D
 var _wander_target: Vector3
 var _wander_wait := 0.0
@@ -40,9 +42,10 @@ var _bubble: Label3D
 var _squeeze_visual_base: Vector3 = Vector3.ONE
 
 
-static func create(d) -> EmergentBody:
+static func create(d, k: float = 1.0) -> EmergentBody:
 	var b := EmergentBody.new()
 	b.def = d
+	b.size_mult = k
 	return b
 
 
@@ -51,6 +54,11 @@ func _ready() -> void:
 	spawn_time = Stats.now()
 	cooldown_until = spawn_time + 0.6
 	built = Visuals.build(def)
+	if size_mult != 1.0:
+		built.visual.scale *= size_mult
+		built.shape = Visuals.scaled_shape(built.shape, size_mult)
+		built.shape_offset *= size_mult
+		built.height *= size_mult
 	visual = built.visual
 	add_child(visual)
 	_squeeze_visual_base = visual.scale
@@ -70,7 +78,7 @@ func _ready() -> void:
 	set_collision_mask_value(LAYER_PLAYER, true)
 	set_collision_mask_value(LAYER_OBJECTS, true)
 
-	mass = {"S": 0.4, "M": 2.0, "L": 12.0, "XL": 40.0}.get(def.size, 1.0)
+	mass = {"S": 0.4, "M": 2.0, "L": 12.0, "XL": 40.0}.get(def.size, 1.0) * size_mult * size_mult
 	contact_monitor = true
 	max_contacts_reported = 4
 	linear_damp = 0.15
@@ -121,6 +129,10 @@ func is_hot() -> bool:
 func set_hot(t: float = HOT_TIME) -> void:
 	hot_until = Stats.now() + t
 	sleeping = false
+
+
+func is_player_shot() -> bool:
+	return Stats.now() < player_shot_until
 
 
 func top_position() -> Vector3:
@@ -212,24 +224,29 @@ func trigger(hitter: Node, dir: Vector3 = Vector3.UP, by_player: bool = false, p
 			continue
 		emitted_def = ed
 		var n: int = max(1, int(round(e.count * factor)))
+		var k := size_mult
 		for i in n:
 			var spread := Vector3(randf_range(-1, 1), randf_range(0.6, 1.4), randf_range(-1, 1)).normalized()
 			var d := (dir * 1.4 + spread).normalized()
-			var speed := randf_range(5.0, 9.0) * power + (2.0 if ed.size == "S" else 0.0)
-			var pos := top + Vector3(randf_range(-0.4, 0.4), randf_range(0.0, 0.6), randf_range(-0.4, 0.4))
+			var speed := (randf_range(5.0, 9.0) * power + (2.0 if ed.size == "S" else 0.0)) * sqrt(k)
+			var pos := top + Vector3(randf_range(-0.4, 0.4), randf_range(0.0, 0.6), randf_range(-0.4, 0.4)) * k
 			var delay := float(i) * (0.02 if n > 8 else 0.05)
-			world.spawn_body(ed, pos, d * speed, delay, true)
+			world.spawn_body(ed, pos, d * speed, delay, true, k)
 			total += 1
 
 	# Feel.
 	Juice.squash(visual, 0.3 if def.anchored else 0.45, 0.35)
-	Juice.burst(top, built.color, 14 + total, 6.0 + total * 0.1, 0.8 if def.size == "S" else 1.2)
+	Juice.burst(top, built.color, 14 + total, (6.0 + total * 0.1) * sqrt(size_mult), (0.8 if def.size == "S" else 1.2) * size_mult)
 	var tier_boost: int = max(emitted_def.tier if emitted_def else 1, def.tier)
-	if by_player and tier_boost >= 3:
-		Juice.hitstop(0.06)
-		Juice.shake(0.25, 0.25)
+	var fresh: bool = emitted_def != null and not Stats.is_seen(emitted_def)
+	if by_player and (tier_boost >= 3 or fresh):
+		Juice.hitstop(0.07)
+		Juice.shake(0.3, 0.25)
 	elif by_player:
-		Juice.shake(0.12, 0.2)
+		Juice.hitstop(0.035)
+		Juice.shake(0.16, 0.2)
+	else:
+		Juice.shake(0.06, 0.15)
 	Juice.sfx("metal" if def.anchored else "impact", global_position, 0.0 if def.anchored else -3.0)
 	Juice.sfx("pop", top, -6.0, 0.8, 1.3)
 	if def.pattern == "reproduce" and not def.anchored:
@@ -247,7 +264,7 @@ func _transform_into(into, world: Node) -> void:
 	Juice.sfx("powerup", pos, 0.0)
 	Juice.hitstop(0.08)
 	Juice.shake(0.3, 0.3)
-	world.spawn_after(into, pos, 0.05)
+	world.spawn_after(into, pos, 0.05, size_mult)
 	Stats.record_emergence(def, into, pos, 1, true)
 	absorb_to(pos + Vector3(0, 1, 0), 0.15)
 
@@ -263,11 +280,11 @@ func _on_body_entered(body: Node) -> void:
 		var mine: float = linear_velocity.length() if not freeze else 0.0
 		if other.is_hot() and speed > HIT_SPEED:
 			var d := (global_position - other.global_position).normalized()
-			trigger(other, d, false, clamp(speed / 12.0, 0.6, 1.4))
+			trigger(other, d, other.is_player_shot(), clamp(speed / 12.0, 0.6, 1.4))
 		elif is_hot() and mine > HIT_SPEED and not other.is_hot():
 			# I am the bullet; the thing I hit reacts.
 			var d := (other.global_position - global_position).normalized()
-			other.trigger(self, d, false, clamp(mine / 12.0, 0.6, 1.4))
+			other.trigger(self, d, is_player_shot(), clamp(mine / 12.0, 0.6, 1.4))
 	elif body is StaticBody3D or body is CharacterBody3D:
 		if is_hot() and linear_velocity.length() > HIT_SPEED + 2.0 and body is StaticBody3D:
 			Juice.sfx("impact", global_position, -10.0, 0.7, 1.0)
@@ -350,7 +367,7 @@ func _on_eat_area_entered(body: Node) -> void:
 			emitted = ed
 			for i in e.count:
 				var d := Vector3(randf_range(-1, 1), 1.2, randf_range(-1, 1)).normalized()
-				world.spawn_body(ed, top + Vector3(0, 0.3, 0), d * 7.0, i * 0.1, true)
+				world.spawn_body(ed, top + Vector3(0, 0.3, 0) * size_mult, d * 7.0 * sqrt(size_mult), i * 0.1, true, size_mult)
 		Juice.burst(top, Color(0.4, 0.9, 0.5), 24, 7.0, 1.2)
 		Juice.sfx("fart", top, -2.0, 0.8, 1.1)
 		Juice.shake(0.2, 0.25)
@@ -361,15 +378,14 @@ func _on_eat_area_entered(body: Node) -> void:
 # ---------- NPC behaviour ----------
 
 func _pick_wander() -> void:
-	_wander_target = global_position + Vector3(randf_range(-6, 6), 0, randf_range(-6, 6))
+	_wander_target = global_position + Vector3(randf_range(-6, 6), 0, randf_range(-6, 6)) * size_mult
 	_wander_wait = randf_range(1.0, 3.5)
 
 
 func _npc_tick(delta: float) -> void:
-	if is_hot() or linear_velocity.length() > 3.0:
+	if is_hot() or linear_velocity.length() > 3.0 * size_mult:
 		return
 	# Stand back up.
-	var up_rot := Vector3(0, rotation.y, 0)
 	rotation.x = lerp_angle(rotation.x, 0.0, delta * 4.0)
 	rotation.z = lerp_angle(rotation.z, 0.0, delta * 4.0)
 	if enlightened:
@@ -387,8 +403,8 @@ func _npc_tick(delta: float) -> void:
 	if to.length() > 0.5:
 		var d := to.normalized()
 		var v := linear_velocity
-		v.x = lerp(v.x, d.x * 1.6, delta * 3.0)
-		v.z = lerp(v.z, d.z * 1.6, delta * 3.0)
+		v.x = lerp(v.x, d.x * 1.6 * size_mult, delta * 3.0)
+		v.z = lerp(v.z, d.z * 1.6 * size_mult, delta * 3.0)
 		linear_velocity = v
 		var target_yaw := atan2(d.x, d.z)
 		rotation.y = lerp_angle(rotation.y, target_yaw, delta * 5.0)
@@ -419,7 +435,8 @@ func _enlighten(innate: bool = false) -> void:
 	tm.ring_segments = 6
 	_aura.mesh = tm
 	_aura.material_override = Visuals.rainbow_material(2.0, 1.5)
-	_aura.position = Vector3(0, built.height + 0.25, 0)
+	_aura.position = Vector3(0, built.height + 0.25 * size_mult, 0)
+	_aura.scale = Vector3.ONE * size_mult
 	add_child(_aura)
 	var world := get_tree().current_scene
 	if world.has_method("on_npc_enlightened"):
@@ -430,8 +447,9 @@ func _npc_emerge_burst() -> void:
 	# A small, local version of the player's release.
 	say("涌现出来了！", 1.0)
 	var dir := Vector3(sin(rotation.y), 0.35, cos(rotation.y)).normalized()
-	var origin := global_position + Vector3(0, 0.8, 0)
-	Juice.ring(origin, Color(1, 1, 1, 0.6), 1.6, 0.3)
+	var k := size_mult
+	var origin := global_position + Vector3(0, 0.8, 0) * k
+	Juice.ring(origin, Color(1, 1, 1, 0.6), 1.6 * k, 0.3)
 	Juice.sfx("whoosh", origin, -8.0, 1.0, 1.4)
 	Juice.burst(origin + dir, Color(0.8, 0.95, 1.0), 10, 5.0, 0.7)
 	var pushed := 0
@@ -440,15 +458,15 @@ func _npc_emerge_burst() -> void:
 			continue
 		var to: Vector3 = b.global_position - origin
 		var dist := to.length()
-		if dist > 4.0:
+		if dist > 4.0 * k:
 			continue
 		if b.def.anchored:
-			if dist < 2.5 and to.normalized().dot(dir) > 0.3:
+			if dist < 2.5 * k and to.normalized().dot(dir) > 0.3:
 				b.trigger(self, dir, false, 0.8)
 			continue
 		if to.normalized().dot(dir) < 0.2:
 			continue
-		var imp: Vector3 = (dir + Vector3(0, 0.3, 0)).normalized() * 9.0 * float(b.mass)
+		var imp: Vector3 = (dir + Vector3(0, 0.3, 0)).normalized() * 9.0 * sqrt(k) * float(b.mass)
 		b.apply_central_impulse(imp)
 		b.set_hot(EMIT_HOT_TIME)
 		pushed += 1
@@ -479,11 +497,11 @@ func say(text: String, time: float = 1.5) -> void:
 	_bubble.font = Boot.font_happy
 	_bubble.font_size = 56
 	_bubble.outline_modulate = Color(0.1, 0.05, 0.3)
-	_bubble.pixel_size = 0.012
+	_bubble.pixel_size = 0.012 * size_mult
 	_bubble.outline_size = 12
 	_bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_bubble.no_depth_test = true
-	_bubble.position = Vector3(0, built.height + 0.7, 0)
+	_bubble.position = Vector3(0, built.height + 0.7 * size_mult, 0)
 	_bubble.scale = Vector3.ZERO
 	add_child(_bubble)
 	var t := _bubble.create_tween()

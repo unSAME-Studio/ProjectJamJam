@@ -18,6 +18,11 @@ var _popups: VBoxContainer
 var _body_count: Label
 var _camera: Camera3D
 var _started := false
+var _bar_root: Control
+var _bar_label: Label
+var _bar_fill: TextureRect
+var _bar_width := 0.0
+var _found: Label
 
 
 func _ready() -> void:
@@ -29,7 +34,11 @@ func _ready() -> void:
 	Stats.archived.connect(_on_archived)
 	Stats.body_count_changed.connect(func(n): _body_count.text = "物体 %d / %d" % [n, Stats.MAX_BODIES])
 	Stats.first_release.connect(_on_first_release)
+	Stats.progress_changed.connect(_on_progress)
+	Stats.discovered.connect(_on_discovered)
+	Stats.stage_goal_reached.connect(_on_goal)
 	_set_started(false)
+	_on_progress(0.0, Stats.STAGE_GOALS[0], 0.0)
 
 
 func _build() -> void:
@@ -65,12 +74,58 @@ func _build() -> void:
 	_hint.size = Vector2(800, 40)
 	_hint.position = Vector2(-400, -90)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.add_theme_font_size_override("font_size", 22)
-	_hint.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+	_hint.add_theme_font_size_override("font_size", 28)
+	_hint.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 	_hint.add_theme_constant_override("outline_size", 6)
 	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_hint.text = "按住 空格 / 鼠标左键 ……然后松开"
 	add_child(_hint)
+
+	_found = _small_label(Vector2(20, -86), 22, Color(1.0, 0.95, 0.5))
+	_found.text = "已发现 0 种涌现"
+	add_child(_found)
+
+	_bar_root = Control.new()
+	_bar_root.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_bar_root.size = Vector2(560, 60)
+	_bar_root.position = Vector2(-280, 12)
+	_bar_root.pivot_offset = _bar_root.size * 0.5
+	_bar_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_bar_root)
+	_bar_label = Label.new()
+	_bar_label.size = Vector2(560, 30)
+	_bar_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bar_label.add_theme_font_override("font", Boot.font_display)
+	_bar_label.add_theme_font_size_override("font_size", 26)
+	_bar_label.add_theme_color_override("font_color", Color.WHITE)
+	_bar_label.add_theme_constant_override("outline_size", 8)
+	_bar_label.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.28))
+	_bar_root.add_child(_bar_label)
+	var bg := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.05, 0.2, 0.7)
+	sb.border_color = Color(1, 1, 1, 0.9)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(9)
+	bg.add_theme_stylebox_override("panel", sb)
+	bg.position = Vector2(0, 34)
+	bg.size = Vector2(560, 20)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar_root.add_child(bg)
+	_bar_fill = TextureRect.new()
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color(1, 0.2, 0.3), Color(1, 0.8, 0.1), Color(0.3, 1, 0.3), Color(0.2, 0.7, 1), Color(0.8, 0.3, 1)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.width = 256
+	gt.height = 4
+	_bar_fill.texture = gt
+	_bar_fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_bar_fill.stretch_mode = TextureRect.STRETCH_SCALE
+	_bar_fill.position = Vector2(4, 38)
+	_bar_fill.size = Vector2(0, 12)
+	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar_root.add_child(_bar_fill)
 
 	_popups = VBoxContainer.new()
 	_popups.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -102,14 +157,49 @@ func _set_started(v: bool) -> void:
 	_recycle.visible = v
 	_body_count.visible = v
 	_popups.visible = v
+	_found.visible = v
+	_bar_root.visible = v
 
 
 func _on_first_release() -> void:
 	_set_started(true)
 	var t := _hint.create_tween()
 	t.tween_property(_hint, "modulate:a", 0.0, 1.5)
+	_queue_hints()
 	show_l3("游戏", SUFFIX_DEFAULT, 4)
 	Juice.ui_sfx("startup", -4.0)
+
+
+# ---------- onboarding: a few deadpan one-liners, each shown once ----------
+
+var _hint_done: Dictionary = {}
+
+
+func _queue_hints() -> void:
+	get_tree().create_timer(5.0).timeout.connect(func():
+		if Stats.emerge_count == 0:
+			hint("squeeze", "对着 ATM、消防栓、树 按住不放。"))
+	Stats.emerged.connect(func(_a, _b, _c, _d, _e):
+		if Stats.emerge_count >= 3:
+			get_tree().create_timer(2.5).timeout.connect(func():
+				if Stats.collapse_count == 0:
+					hint("gather", "同样的东西吸到一起，按住别松。")))
+	Stats.collapsed.connect(func(_a, _b, _c, _d):
+		get_tree().create_timer(3.0).timeout.connect(func():
+			hint("chain", "松开，把它们砸向别的东西。")))
+	Stats.stage_goal_reached.connect(func(_s): _hint.modulate.a = 0.0)
+
+
+func hint(id: String, text: String) -> void:
+	if _hint_done.has(id) or not is_inside_tree():
+		return
+	_hint_done[id] = true
+	_hint.text = text
+	_hint.modulate.a = 0.0
+	var t := _hint.create_tween()
+	t.tween_property(_hint, "modulate:a", 1.0, 0.4)
+	t.tween_interval(4.0)
+	t.tween_property(_hint, "modulate:a", 0.0, 0.8)
 
 
 # ---------- splitting a line into NAME + SUFFIX ----------
@@ -168,6 +258,34 @@ func _on_combo(c: int) -> void:
 		show_l3("连涌 ×%d" % c, "！！！", 4)
 
 
+func _on_progress(value: float, goal: float, gained: float) -> void:
+	var st: int = Stats.stage
+	var names: Array = Stats.STAGE_NAMES
+	var next_name: String = names[min(st, names.size() - 1)] if st < names.size() else "？"
+	_bar_label.text = "%s  ▸  %s　　涌现度 %d / %d" % [names[st - 1], next_name, int(value), int(goal)]
+	var target: float = 552.0 * clamp(value / goal, 0.0, 1.0)
+	var t := _bar_fill.create_tween()
+	t.tween_property(_bar_fill, "size:x", target, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if gained >= 4.0:
+		_bar_root.scale = Vector2.ONE * 1.08
+		var p := _bar_root.create_tween()
+		p.tween_property(_bar_root, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _on_goal(_stage: int) -> void:
+	_bar_label.text = "涌现度满了！"
+	Juice.ui_sfx("powerup", -2.0, 1.2)
+
+
+func _on_discovered(def, count: int) -> void:
+	_found.text = "已发现 %d 种涌现" % count
+	if count > 1:
+		popup("发现新的涌现：%s（第 %d 种）" % [def.name, count])
+	_found.scale = Vector2.ONE * 1.3
+	var t := _found.create_tween()
+	t.tween_property(_found, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _on_archived(_def) -> void:
 	_recycle.text = "回收站 %d" % Stats.recycled
 
@@ -182,29 +300,29 @@ func show_l2(name_text: String, suffix_text: String, anchor: Vector3, tier: int 
 			e.time = Stats.now()
 			e.anchor = anchor
 			e.cap.set_count(e.count)
-			e.cap.pop(1.2)
+			e.cap.pop_in(1.2)
 			return
 	if _l2.size() >= L2_MAX:
 		_l2.sort_custom(func(a, b): return a.tier < b.tier or (a.tier == b.tier and a.time < b.time))
 		var victim = _l2.pop_front()
 		victim.cap.queue_free()
 	var cap := Caption.new()
-	cap.setup(name_text, suffix_text, tier, false)
 	add_child(cap)
+	cap.setup(name_text, suffix_text, tier, false)
 	_l2.append({"cap": cap, "anchor": anchor, "key": key, "count": 1, "tier": tier, "time": Stats.now(),
 		"offset": Vector2(randf_range(-40, 40), randf_range(-30, 10))})
-	cap.pop(1.6)
+	cap.pop_in(1.6)
 
 
 func show_l3(name_text: String, suffix_text: String, tier: int = 5) -> void:
 	if _l3 and is_instance_valid(_l3):
 		_l3.queue_free()
 	_l3 = Caption.new()
-	_l3.setup(name_text, suffix_text, tier, true)
 	add_child(_l3)
+	_l3.setup(name_text, suffix_text, tier, true)
 	var vp := get_viewport().get_visible_rect().size
 	_l3.position = (vp - _l3.size) * 0.5 - Vector2(0, vp.y * 0.08)
-	_l3.pop(2.2)
+	_l3.pop_in(2.2)
 	if _l3_tween and _l3_tween.is_valid():
 		_l3_tween.kill()
 	_l3_tween = _l3.create_tween()

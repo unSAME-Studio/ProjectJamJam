@@ -29,6 +29,7 @@ func _init() -> void:
 	_add_key("reset", KEY_R)
 	_add_key("toggle_mouse", KEY_ESCAPE)
 	_add_key("debug_spawn", KEY_T)
+	_add_key("next_stage", KEY_N)
 	autopilot = "--autopilot" in OS.get_cmdline_user_args()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shots="):

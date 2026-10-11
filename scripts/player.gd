@@ -26,6 +26,12 @@ var _hum: AudioStreamPlayer3D
 var _charge_label: Label3D
 var _field: Area3D
 var _gas: CPUParticles3D
+var _stream: CPUParticles3D
+var locked := false            # cutscenes take the controls away
+var k := 1.0:                  # body scale; grows between stages
+	set(v):
+		k = v
+		scale = Vector3.ONE * v
 
 @onready var pivot: Node3D = $Pivot
 @onready var arm: SpringArm3D = $Pivot/SpringArm3D
@@ -42,6 +48,7 @@ func _ready() -> void:
 	set_collision_mask_value(EmergentBody.LAYER_OBJECTS, true)
 	_build_visual()
 	_build_field()
+	_build_stream()
 	_hum = AudioStreamPlayer3D.new()
 	_hum.stream = load("res://assets/sounds/hum.wav")
 	_hum.volume_db = -14.0
@@ -134,6 +141,40 @@ func _build_visual() -> void:
 	body_visual.add_child(_gas)
 
 
+func _build_stream() -> void:
+	# While holding: little streaks of qi flowing into the gather point.
+	_stream = CPUParticles3D.new()
+	_stream.emitting = false
+	_stream.amount = 60
+	_stream.lifetime = 0.45
+	_stream.local_coords = false
+	_stream.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE
+	_stream.emission_sphere_radius = FIELD_RADIUS * 0.75
+	_stream.direction = Vector3.ZERO
+	_stream.spread = 180.0
+	_stream.initial_velocity_min = 0.0
+	_stream.initial_velocity_max = 0.5
+	_stream.radial_accel_min = -60.0
+	_stream.radial_accel_max = -40.0
+	_stream.gravity = Vector3.ZERO
+	_stream.scale_amount_min = 0.5
+	_stream.scale_amount_max = 1.2
+	var m := BoxMesh.new()
+	m.size = Vector3(0.06, 0.06, 0.45)
+	_stream.mesh = m
+	_stream.particle_flag_align_y = true
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(0.8, 1.0, 1.0, 0.9), Color(1.0, 0.9, 0.5, 0.0)])
+	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	_stream.color_ramp = g
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_stream.material_override = mat
+	add_child(_stream)
+
+
 func _build_field() -> void:
 	_field = Area3D.new()
 	var cs := CollisionShape3D.new()
@@ -157,12 +198,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mouse_captured = not _mouse_captured
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if _mouse_captured else Input.MOUSE_MODE_VISIBLE
 	if event.is_action_pressed("reset"):
+		Engine.time_scale = 1.0
+		Stats.reset()
 		get_tree().reload_current_scene()
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			cam_distance = max(5.0, cam_distance - 1.0)
+			cam_distance = max(5.0 * k, cam_distance - k)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			cam_distance = min(22.0, cam_distance + 1.0)
+			cam_distance = min(22.0 * k, cam_distance + k)
 
 
 func _physics_process(delta: float) -> void:
@@ -174,21 +217,21 @@ func _physics_process(delta: float) -> void:
 	if abs(ry) > 0.15:
 		pitch = clamp(pitch - ry * 90.0 * delta, -70.0, 10.0)
 	pivot.rotation_degrees = Vector3(pitch, yaw, 0)
-	pivot.global_position = pivot.global_position.lerp(global_position + Vector3(0, 1.2, 0), min(delta * 12.0, 1.0))
-	var auto_zoom: float = clamp(Stats.bodies.size() * 0.012, 0.0, 5.0)
-	var hold_zoom: float = -2.2 * clamp(hold_time / HOLD_FULL, 0.0, 1.0)
+	pivot.global_position = pivot.global_position.lerp(global_position + Vector3(0, 1.2 * k, 0), min(delta * 12.0, 1.0))
+	var auto_zoom: float = clamp(Stats.bodies.size() * 0.012, 0.0, 5.0) * k
+	var hold_zoom: float = -2.2 * k * clamp(hold_time / HOLD_FULL, 0.0, 1.0)
 	_cam_kick = lerp(_cam_kick, 0.0, delta * 6.0)
 	arm.spring_length = lerp(arm.spring_length, cam_distance + auto_zoom + hold_zoom + _cam_kick, delta * 8.0)
 
 	# --- movement ---
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input := Vector2.ZERO if locked else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var cam_basis := Basis(Vector3.UP, deg_to_rad(yaw))
 	var dir := (cam_basis * Vector3(input.x, 0, input.y))
 	dir.y = 0
 	dir = dir.normalized()
-	var speed := SPEED * (0.45 if holding else 1.0)
-	velocity.x = move_toward(velocity.x, dir.x * speed, ACCEL * delta)
-	velocity.z = move_toward(velocity.z, dir.z * speed, ACCEL * delta)
+	var speed := SPEED * pow(k, 0.75) * (0.45 if holding else 1.0)
+	velocity.x = move_toward(velocity.x, dir.x * speed, ACCEL * k * delta)
+	velocity.z = move_toward(velocity.z, dir.z * speed, ACCEL * k * delta)
 	if not is_on_floor():
 		velocity.y -= 24.0 * delta
 	else:
@@ -204,6 +247,10 @@ func _physics_process(delta: float) -> void:
 	body_visual.rotation.y = lerp_angle(body_visual.rotation.y, atan2(facing.x, facing.z), delta * 12.0)
 
 	# --- the verb ---
+	if locked:
+		if holding:
+			_release()
+		return
 	if Input.is_action_just_pressed("emerge"):
 		_begin_hold()
 	if holding:
@@ -214,7 +261,7 @@ func _physics_process(delta: float) -> void:
 
 
 func gather_point() -> Vector3:
-	return global_position + facing * GATHER_DIST + Vector3(0, 0.9, 0)
+	return global_position + (facing * GATHER_DIST + Vector3(0, 0.9, 0)) * k
 
 
 func _begin_hold() -> void:
@@ -226,6 +273,7 @@ func _begin_hold() -> void:
 	_charge_label.text = "力量——"
 	_charge_label.visible = true
 	_charge_label.scale = Vector3.ONE * 0.6
+	_stream.emitting = true
 	var t := body_visual.create_tween()
 	t.tween_property(body_visual, "scale", Vector3(1.15, 0.8, 1.15), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -236,7 +284,10 @@ func _hold_tick(delta: float) -> void:
 	_charge_label.scale = Vector3.ONE * (0.6 + k * 0.9)
 	_charge_label.text = "力量——" + "—".repeat(int(hold_time * 2.0))
 	var gp := gather_point()
-	var origin := global_position + Vector3(0, 0.8, 0)
+	_stream.global_position = gp
+	_stream.radial_accel_min = -60.0 * k
+	_stream.radial_accel_max = -40.0 * k
+	var origin := global_position + Vector3(0, 0.8, 0) * k
 	_restore_gravity()
 	for body in _field.get_overlapping_bodies():
 		if not (body is EmergentBody):
@@ -246,11 +297,11 @@ func _hold_tick(delta: float) -> void:
 			continue
 		var to := b.global_position - origin
 		var dist := to.length()
-		var in_cone := dist < 1.5 or to.normalized().dot(facing) > CONE_COS
+		var in_cone := dist < 1.5 * k or to.normalized().dot(facing) > CONE_COS
 		if not in_cone:
 			continue
 		if b.def.anchored:
-			if dist <= SQUEEZE_RANGE + b.built.height * 0.3:
+			if dist <= SQUEEZE_RANGE * k + b.built.height * 0.3:
 				b.apply_squeeze(delta, origin)
 			continue
 		_attracted.append(b)
@@ -258,12 +309,12 @@ func _hold_tick(delta: float) -> void:
 		var pd := pull.length()
 		if pd < 0.05:
 			continue
-		var strength: float = ATTRACT_STRENGTH * clamp(pd, 0.3, 3.0) / 3.0
+		var strength: float = ATTRACT_STRENGTH * sqrt(k) * clamp(pd / k, 0.3, 3.0) / 3.0
 		var force: Vector3 = pull.normalized() * strength * b.mass
 		# damp so they clump instead of orbiting
 		force -= b.linear_velocity * 2.5 * b.mass
 		b.apply_central_force(force)
-		b.gravity_scale = b.default_gravity * (0.15 if pd < 2.5 else 0.6)
+		b.gravity_scale = b.default_gravity * (0.15 if pd < 2.5 * k else 0.6)
 		b.sleeping = false
 
 
@@ -278,6 +329,7 @@ func _release() -> void:
 	holding = false
 	var power: float = clamp(hold_time / HOLD_FULL, 0.25, 1.0)
 	_hum.stop()
+	_stream.emitting = false
 	_charge_label.text = "涌现出来了！！！"
 	_charge_label.scale = Vector3.ONE * 1.3
 	var lt := _charge_label.create_tween()
@@ -289,9 +341,9 @@ func _release() -> void:
 	t.tween_property(body_visual, "scale", Vector3(0.8, 1.3, 0.8), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(body_visual, "scale", Vector3.ONE, 0.4).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-	var origin := global_position + Vector3(0, 0.8, 0)
+	var origin := global_position + Vector3(0, 0.8, 0) * k
 	var dir := (facing + Vector3(0, 0.22, 0)).normalized()
-	var launch_speed: float = 9.0 + 20.0 * power
+	var launch_speed: float = (9.0 + 20.0 * power) * sqrt(k)
 	var launched := 0
 	for b in _attracted:
 		if not is_instance_valid(b) or b.absorbing:
@@ -302,6 +354,7 @@ func _release() -> void:
 		b.linear_velocity = v
 		b.apply_torque_impulse(Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * b.mass * 2.0)
 		b.set_hot()
+		b.player_shot_until = b.hot_until
 		launched += 1
 	_attracted.clear()
 	# Everything loose in the cone (not necessarily gathered) also gets a shove,
@@ -314,20 +367,21 @@ func _release() -> void:
 			continue
 		var to := b.global_position - origin
 		var dist := to.length()
-		if dist > BLAST_RANGE + 1.5 or to.normalized().dot(facing) < CONE_COS:
+		if dist > (BLAST_RANGE + 1.5) * k or to.normalized().dot(facing) < CONE_COS:
 			continue
 		if b.def.anchored:
-			if dist <= BLAST_RANGE + b.built.height * 0.3:
+			if dist <= BLAST_RANGE * k + b.built.height * 0.3:
 				b.trigger(null, facing, true, 0.8 + power * 0.6)
 		elif not b.is_hot():
 			b.apply_central_impulse((dir + to.normalized() * 0.4).normalized() * launch_speed * 0.6 * b.mass)
 			b.set_hot(1.2)
+			b.player_shot_until = b.hot_until
 
 	_gas.restart()
 	_gas.emitting = true
-	Juice.ring(origin + facing * 0.8, Color(0.8, 0.95, 1.0, 0.7), 2.0 + 2.5 * power, 0.3)
+	Juice.ring(origin + facing * 0.8 * k, Color(0.8, 0.95, 1.0, 0.7), (2.0 + 2.5 * power) * k, 0.3)
 	Juice.sfx("whoosh", origin, 0.0, 0.9 + power * 0.3, 1.0 + power * 0.4)
 	Juice.shake(0.12 + 0.3 * power, 0.25)
-	_cam_kick = 1.2 + 1.5 * power
+	_cam_kick = (1.2 + 1.5 * power) * k
 	Stats.record_release(power)
 	hold_time = 0.0

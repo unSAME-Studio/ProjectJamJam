@@ -80,8 +80,27 @@ static func build(def) -> Built:
 			_build_croc(b)
 		"flood":
 			_build_flood(b)
+		"building":
+			_build_tower(b, Vector3(2.4, 3.4, 2.4), _hash_color(def.name, 0.35, 0.85), "楼")
+		"company":
+			_build_tower(b, Vector3(4.0, 7.0, 4.0), Color(0.55, 0.7, 0.85), "公司")
+		"bank":
+			_build_tower(b, Vector3(5.0, 4.5, 4.0), Color(0.85, 0.82, 0.7), "银行", Color(0.85, 0.1, 0.1))
+		"school":
+			_build_tower(b, Vector3(7.0, 4.0, 4.0), Color(0.9, 0.75, 0.55), "学校", Color(0.9, 0.1, 0.1))
+		"tvstation":
+			_build_tower(b, Vector3(3.5, 9.0, 3.5), Color(0.75, 0.75, 0.8), "电视台", Color(0.1, 0.3, 0.9))
+		"pcmall":
+			_build_tower(b, Vector3(6.0, 4.5, 5.0), Color(0.3, 0.35, 0.45), "电脑城", Color(0.2, 1.0, 1.0))
+		"site":
+			_build_tower(b, Vector3(5.0, 2.0, 5.0), Color(0.95, 0.75, 0.2), "工地", Color(0.1, 0.1, 0.1))
+		"danwei":
+			_build_tower(b, Vector3(5.0, 5.0, 4.0), Color(0.85, 0.85, 0.8), "单位", Color(0.8, 0.1, 0.1))
 		_:
-			_build_text(def, b)
+			if def.anchored:
+				_build_tower(b, Vector3(4.0, 4.0, 4.0), _hash_color(def.name, 0.4, 0.85), def.name)
+			else:
+				_build_text(def, b)
 	if b.shape == null:
 		var box := BoxShape3D.new()
 		box.size = Vector3.ONE * b.height * 0.6
@@ -479,6 +498,51 @@ static func _label(text: String, pos: Vector3, size: float, color: Color) -> Lab
 	l.position = pos
 	l.no_depth_test = false
 	return l
+
+
+static func _hash_color(text: String, sat: float, val: float) -> Color:
+	return Color.from_hsv(float(abs(text.hash()) % 1000) / 1000.0, sat, val)
+
+
+static func _build_tower(b: Built, size: Vector3, color: Color, sign: String, sign_color := Color(1, 0.95, 0.2)) -> void:
+	# A city block building: body, window stripes, rooftop sign facing +Z.
+	var root := Node3D.new()
+	var body := BoxMesh.new()
+	body.size = size
+	root.add_child(_mi(body, _mat(color), Vector3(0, size.y * 0.5, 0)))
+	var floors := int(max(size.y / 1.1, 1.0))
+	var win_mat := _mat(Color(0.55, 0.8, 1.0), true)
+	for f in floors:
+		var strip := BoxMesh.new()
+		strip.size = Vector3(size.x * 0.82, 0.35, size.z * 1.02)
+		root.add_child(_mi(strip, win_mat, Vector3(0, 0.75 + f * (size.y - 0.8) / floors, 0)))
+	var board := BoxMesh.new()
+	var bw: float = max(size.x * 0.9, sign.length() * 0.9)
+	board.size = Vector3(bw, 0.9, 0.15)
+	root.add_child(_mi(board, _mat(Color(0.8, 0.1, 0.1)), Vector3(0, size.y + 0.5, size.z * 0.3)))
+	root.add_child(_label(sign, Vector3(0, size.y + 0.5, size.z * 0.3 + 0.1), 0.75, sign_color))
+	b.visual = root
+	var s := BoxShape3D.new()
+	s.size = size
+	b.shape = s
+	b.shape_offset = Vector3(0, size.y * 0.5, 0)
+	b.height = size.y
+	b.color = color.lightened(0.3)
+
+
+static func scaled_shape(shape: Shape3D, k: float) -> Shape3D:
+	var s: Shape3D = shape.duplicate()
+	if s is BoxShape3D:
+		s.size *= k
+	elif s is SphereShape3D:
+		s.radius *= k
+	elif s is CapsuleShape3D:
+		s.radius *= k
+		s.height *= k
+	elif s is CylinderShape3D:
+		s.radius *= k
+		s.height *= k
+	return s
 
 
 static func _build_flood(b: Built) -> void:

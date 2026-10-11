@@ -1,8 +1,12 @@
 extends Node3D
-## Builds the street block, spawns objects from the content table, and owns
-## the spawn API used by everything else.
+## Builds the street block, spawns objects from the content table, owns the
+## spawn API, and runs the stage transitions:
+##   街道 (k=1) → 城市 (k=3.5, player grows, buildings rise) → 地球 (preview:
+##   camera pulls out to orbit, then comes back down).
 
 const CITY := "res://assets/models/city/"
+const CITY_K := 3.5
+const GROUND_SIZE := 1800.0
 
 # name, position, yaw (deg)
 const LAYOUT := [
@@ -22,12 +26,27 @@ const LAYOUT := [
 	["公交车", Vector3(0, 0, 16), 90],
 ]
 
+# The city ring: emergent (anchored, triggerable) buildings closest to the street.
+const CITY_BUILDINGS := [
+	["银行", Vector3(0, 0, -70)], ["公司", Vector3(60, 0, -60)], ["学校", Vector3(-65, 0, -55)],
+	["工地", Vector3(70, 0, 5)], ["电视台", Vector3(-72, 0, 5)], ["电脑城", Vector3(55, 0, 65)],
+	["公司", Vector3(-55, 0, 65)], ["网吧", Vector3(0, 0, 75)], ["银行", Vector3(115, 0, -20)],
+	["公司", Vector3(-115, 0, -25)], ["学校", Vector3(110, 0, 60)], ["工地", Vector3(-110, 0, 55)],
+]
+const SKYLINE_SIGNS := ["宾馆", "发廊", "KTV", "超市", "移动", "网吧", "药房", "大酒店", "电器城", "足浴", "彩票", "影楼"]
+
 var player: Player
 var hud: CanvasLayer
+var k := 1.0                    # scale of things spawned by the level itself
+var transitioning := false
 var _desat_mat: ShaderMaterial
 var _desat_rect: ColorRect
 var _bodies_root: Node3D
 var _ambient: AudioStreamPlayer
+var _env: Environment
+var _sky: ProceduralSkyMaterial
+var _sky_colors: Array = []
+var _earth_root: Node3D
 
 
 func _ready() -> void:
@@ -35,6 +54,9 @@ func _ready() -> void:
 	_bodies_root = Node3D.new()
 	_bodies_root.name = "Bodies"
 	add_child(_bodies_root)
+	_env = $WorldEnvironment.environment
+	_sky = _env.sky.sky_material
+	_sky_colors = [_sky.sky_top_color, _sky.sky_horizon_color, _sky.ground_horizon_color, _sky.ground_bottom_color]
 	_build_ground()
 	_build_props()
 	player = $Player
@@ -45,6 +67,7 @@ func _ready() -> void:
 	_spawn_pigeons(14)
 	_build_desaturate()
 	Stats.first_release.connect(_on_first_release)
+	Stats.stage_goal_reached.connect(func(_s): advance_stage())
 	_ambient = AudioStreamPlayer.new()
 	_ambient.stream = load("res://assets/sounds/CityAmbience.ogg")
 	_ambient.volume_db = -16.0
@@ -59,24 +82,26 @@ func _ready() -> void:
 
 # ---------- spawning API ----------
 
-func spawn_body(def, pos: Vector3, velocity: Vector3 = Vector3.ZERO, delay: float = 0.0, hot: bool = false) -> void:
+func spawn_body(def, pos: Vector3, velocity: Vector3 = Vector3.ZERO, delay: float = 0.0, hot: bool = false, scale_k: float = -1.0) -> void:
+	var sk := k if scale_k <= 0.0 else scale_k
 	if delay > 0.0:
 		var t := get_tree().create_timer(delay)
-		t.timeout.connect(func(): _do_spawn(def, pos, velocity, hot))
+		t.timeout.connect(func(): _do_spawn(def, pos, velocity, hot, sk))
 	else:
-		_do_spawn(def, pos, velocity, hot)
+		_do_spawn(def, pos, velocity, hot, sk)
 
 
-func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool) -> EmergentBody:
+func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool, scale_k: float = -1.0, pop: bool = true) -> EmergentBody:
 	if def == null or not def.is_entity():
 		return null
-	var b := EmergentBody.create(def)
+	var sk := k if scale_k <= 0.0 else scale_k
+	var b := EmergentBody.create(def, sk)
 	_bodies_root.add_child(b)
 	if def.anchored:
 		# Fixed things grow out of the ground where they land.
 		pos.y = 0.0
 		velocity = Vector3.ZERO
-		pos += Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
+		pos += Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)) * sk
 	b.global_position = pos
 	b.rotation.y = randf_range(0, TAU)
 	if velocity != Vector3.ZERO:
@@ -87,7 +112,8 @@ func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool) -> EmergentBody:
 		var chance := 0.25 if def.pattern == "reproduce" else 0.5
 		if randf() < chance:
 			b.set_hot(EmergentBody.EMIT_HOT_TIME)
-	# pop in
+	if not pop:
+		return b
 	var base: Vector3 = b.visual.scale
 	b.visual.scale = base * 0.1
 	var t := b.create_tween()
@@ -95,23 +121,23 @@ func _do_spawn(def, pos: Vector3, velocity: Vector3, hot: bool) -> EmergentBody:
 	return b
 
 
-func spawn_after(def, pos: Vector3, delay: float) -> void:
+func spawn_after(def, pos: Vector3, delay: float, scale_k: float = -1.0) -> void:
+	var sk := k if scale_k <= 0.0 else scale_k
 	var t := get_tree().create_timer(delay)
 	t.timeout.connect(func():
-		var b := _do_spawn(def, pos, Vector3.ZERO, false)
+		var b := _do_spawn(def, pos, Vector3.ZERO, false, sk)
 		if b:
-			Juice.burst(pos, Color(1, 1, 0.5), 30, 9.0, 1.5)
-			Juice.ring(pos, Color(1, 0.9, 0.3, 0.8), 4.0, 0.45)
+			Juice.burst(pos, Color(1, 1, 0.5), 30, 9.0 * sqrt(sk), 1.5 * sk)
+			Juice.ring(pos, Color(1, 0.9, 0.3, 0.8), 4.0 * sk, 0.45)
 			Juice.sfx("explosion" if def.tier >= 4 else "powerup", pos, -2.0)
 			Juice.shake(0.3 + def.tier * 0.08, 0.35)
 			if def.tier >= 3:
 				Juice.slowmo(0.3, 0.12)
-			if def.tier >= 3:
-				_drop_name_chars(def.name, pos + Vector3(0, 2.5, 0))
+				_drop_name_chars(def.name, pos + Vector3(0, 2.5, 0) * sk, sk)
 	)
 
 
-func _drop_name_chars(name: String, pos: Vector3) -> void:
+func _drop_name_chars(name: String, pos: Vector3, sk: float = 1.0) -> void:
 	# The caption's characters fall into the world as rainbow blocks.
 	var n := name.length()
 	for i in n:
@@ -119,20 +145,20 @@ func _drop_name_chars(name: String, pos: Vector3) -> void:
 		var b := RigidBody3D.new()
 		b.add_to_group("char")
 		var mi := MeshInstance3D.new()
-		mi.mesh = Visuals.char_body_mesh(ch, 1.1)
-		mi.material_override = Visuals.rainbow_material(2.0, 1.0)
+		mi.mesh = Visuals.char_body_mesh(ch, 1.1 * sk)
+		mi.material_override = Visuals.rainbow_material(2.0, 1.0 / sk)
 		b.add_child(mi)
 		var cs := CollisionShape3D.new()
 		var s := BoxShape3D.new()
-		s.size = Vector3(1.0, 1.1, 0.35)
+		s.size = Vector3(1.0, 1.1, 0.35) * sk
 		cs.shape = s
 		b.add_child(cs)
-		b.mass = 1.5
+		b.mass = 1.5 * sk * sk
 		b.collision_layer = 1 << (EmergentBody.LAYER_OBJECTS - 1)
 		b.collision_mask = (1 << (EmergentBody.LAYER_WORLD - 1)) | (1 << (EmergentBody.LAYER_OBJECTS - 1)) | (1 << (EmergentBody.LAYER_PLAYER - 1))
 		_bodies_root.add_child(b)
-		b.global_position = pos + Vector3((i - n * 0.5 + 0.5) * 1.2, 0, 0)
-		b.linear_velocity = Vector3(randf_range(-2, 2), randf_range(2, 5), randf_range(-2, 2))
+		b.global_position = pos + Vector3((i - n * 0.5 + 0.5) * 1.2 * sk, 0, 0)
+		b.linear_velocity = Vector3(randf_range(-2, 2), randf_range(2, 5), randf_range(-2, 2)) * sqrt(sk)
 		b.angular_velocity = Vector3(randf_range(-2, 2), randf_range(-2, 2), randf_range(-2, 2))
 		var t := get_tree().create_timer(12.0 + i)
 		t.timeout.connect(func():
@@ -144,6 +170,343 @@ func _drop_name_chars(name: String, pos: Vector3) -> void:
 
 func on_npc_enlightened(_npc: EmergentBody) -> void:
 	pass
+
+
+# ---------- stages ----------
+
+func advance_stage() -> void:
+	if transitioning:
+		return
+	if Stats.stage == 1:
+		_to_city()
+	else:
+		_earth_preview()
+
+
+func _begin_cutscene() -> void:
+	transitioning = true
+	player.locked = true
+	Juice.reset_time()
+	Juice.cinematic = true
+
+
+func _end_cutscene() -> void:
+	transitioning = false
+	player.locked = false
+	Juice.cinematic = false
+
+
+func _to_city() -> void:
+	# 街道 → 城市: camera pulls way out, the street freezes into a diorama,
+	# a city grows out of the ground around it, the player grows to match,
+	# and the camera settles at the new scale.
+	_begin_cutscene()
+	k = CITY_K
+	Juice.ui_sfx("startup", -2.0, 0.8)
+	Juice.shake(0.4, 0.5)
+	_bake_street()
+	var city := _build_city()
+	var t := create_tween()
+	t.set_ignore_time_scale(true)
+	t.set_parallel(true)
+	t.tween_property(player, "cam_distance", 85.0, 2.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(player, "pitch", -58.0, 2.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(func(): _rise(city, 2.6)).set_delay(0.7)
+	t.tween_callback(func():
+		hud.show_l3("城市", "涌现出来了。", 5)
+		Juice.ui_sfx("chime", -2.0, 0.8)).set_delay(1.6)
+	t.tween_property(player, "k", CITY_K, 1.4).set_delay(1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(player, "cam_distance", 9.0 * CITY_K, 1.6).set_delay(3.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(player, "pitch", -30.0, 1.6).set_delay(3.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(func():
+		_spawn_city_life()
+		Stats.enter_stage(2)
+		_end_cutscene()).set_delay(5.3)
+
+
+func _bake_street() -> void:
+	# Loose stage-1 things stop where they are: the old chaos becomes scenery.
+	for b in Stats.bodies.duplicate():
+		if not is_instance_valid(b) or b.def.anchored or b.size_mult != 1.0:
+			continue
+		b.absorbing = true
+		Stats.unregister(b)
+		b.freeze = true
+		b.collision_layer = 0
+		b.collision_mask = 0
+
+
+func _build_city() -> Array:
+	## Returns [{node, visual, delay}] for the rise animation.
+	var items: Array = []
+	# roads
+	var road_mat := StandardMaterial3D.new()
+	road_mat.albedo_color = Color(0.28, 0.28, 0.3)
+	for off in [-205.0, -140.0, -90.0, -38.0, 38.0, 90.0, 140.0, 205.0]:
+		for along_x in [true, false]:
+			var mi := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(900, 0.05, 16) if along_x else Vector3(16, 0.05, 900)
+			mi.mesh = bm
+			mi.material_override = road_mat
+			mi.position = Vector3(0, 0.02, off) if along_x else Vector3(off, 0.02, 0)
+			add_child(mi)
+			mi.scale = Vector3(1, 1, 0.01) if along_x else Vector3(0.01, 1, 1)
+			items.append({"node": mi, "visual": mi, "delay": abs(off) / 450.0, "kind": "road", "along_x": along_x})
+	# emergent buildings
+	for entry in CITY_BUILDINGS:
+		var def = DB.get_def(entry[0])
+		if def == null:
+			continue
+		var b := _do_spawn(def, entry[1], Vector3.ZERO, false, CITY_K, false)
+		if b:
+			b.rotation.y = atan2(-entry[1].x, -entry[1].z)  # sign faces the street
+			var base: Vector3 = b.visual.scale
+			b.visual.scale = Vector3(base.x, base.y * 0.01, base.z)
+			items.append({"node": b, "visual": b.visual, "delay": entry[1].length() / 180.0, "kind": "body", "base": base})
+	# static skyline
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for ring in [[165.0, 22], [250.0, 30], [360.0, 40]]:
+		var r: float = ring[0]
+		var n: int = ring[1]
+		for i in n:
+			var a := TAU * float(i) / n + rng.randf_range(-0.05, 0.05)
+			var pos := Vector3(cos(a) * r, 0, sin(a) * r) + Vector3(rng.randf_range(-15, 15), 0, rng.randf_range(-15, 15))
+			var h := rng.randf_range(20.0, 70.0) * (r / 165.0)
+			var w := rng.randf_range(14.0, 26.0)
+			var node := _skyline_tower(Vector3(w, h, w * rng.randf_range(0.7, 1.2)), pos, SKYLINE_SIGNS[rng.randi() % SKYLINE_SIGNS.size()], rng)
+			items.append({"node": node, "visual": node.get_child(0), "delay": r / 180.0 + rng.randf_range(0.0, 0.3), "kind": "static"})
+	return items
+
+
+func _skyline_tower(size: Vector3, pos: Vector3, sign: String, rng: RandomNumberGenerator) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var vis := Node3D.new()
+	body.add_child(vis)
+	var m := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	m.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color.from_hsv(rng.randf(), rng.randf_range(0.1, 0.35), rng.randf_range(0.7, 0.95))
+	m.material_override = mat
+	m.position.y = size.y * 0.5
+	vis.add_child(m)
+	var win := StandardMaterial3D.new()
+	win.albedo_color = Color(0.55, 0.8, 1.0)
+	win.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var floors := int(size.y / 6.0)
+	for f in floors:
+		var s := MeshInstance3D.new()
+		var sm := BoxMesh.new()
+		sm.size = Vector3(size.x * 0.84, 1.6, size.z * 1.01)
+		s.mesh = sm
+		s.material_override = win
+		s.position.y = 3.0 + f * 6.0
+		vis.add_child(s)
+	var l := Label3D.new()
+	l.text = sign
+	l.font = Boot.font_display
+	l.font_size = 64
+	l.pixel_size = size.x * 0.6 / 64.0 / max(sign.length(), 1)
+	l.outline_size = 10
+	l.modulate = Color.from_hsv(rng.randf(), 0.8, 1.0)
+	l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	l.position.y = size.y + size.x * 0.25
+	vis.add_child(l)
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	cs.shape = box
+	cs.position.y = size.y * 0.5
+	body.add_child(cs)
+	add_child(body)
+	body.global_position = pos
+	vis.scale = Vector3(1, 0.01, 1)
+	return body
+
+
+func _rise(items: Array, total: float) -> void:
+	for it in items:
+		var vis: Node3D = it.visual
+		if not is_instance_valid(vis):
+			continue
+		var t := vis.create_tween()
+		t.set_ignore_time_scale(true)
+		var d: float = min(it.delay, 1.0) * total * 0.7
+		if it.kind == "road":
+			var target := Vector3.ONE
+			t.tween_property(vis, "scale", target, 0.6).set_delay(d).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			continue
+		var base: Vector3 = it.get("base", Vector3.ONE)
+		t.tween_property(vis, "scale", base, 0.7).set_delay(d).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var node: Node3D = it.node
+		t.parallel().tween_callback(func():
+			if is_instance_valid(node):
+				Juice.burst(node.global_position + Vector3(0, 2, 0), Color(0.85, 0.8, 0.7), 12, 14.0, 4.0)).set_delay(d)
+	var rumble := create_tween()
+	rumble.set_ignore_time_scale(true)
+	for i in 6:
+		rumble.tween_callback(func():
+			Juice.sfx("explosion", player.global_position + Vector3(randf_range(-40, 40), 0, randf_range(-40, 40)), -6.0, 0.4, 0.6)
+			Juice.shake(0.25, 0.3))
+		rumble.tween_interval(total / 6.0)
+
+
+func _spawn_city_life() -> void:
+	var worker = DB.get_def("上班族")
+	var car = DB.get_def("汽车")
+	var bus = DB.get_def("公交车")
+	var money = DB.get_def("钱")
+	for i in 12:
+		var a := randf() * TAU
+		var r := randf_range(45.0, 120.0)
+		_do_spawn(worker, Vector3(cos(a) * r, 1, sin(a) * r), Vector3.ZERO, false, CITY_K)
+	for i in 10:
+		var along := randf_range(-160, 160)
+		var lane: float = [-90.0, 90.0, -140.0, 140.0].pick_random()
+		var p := Vector3(along, 1, lane) if randf() < 0.5 else Vector3(lane, 1, along)
+		_do_spawn(car if randf() < 0.75 else bus, p, Vector3.ZERO, false, CITY_K)
+	for i in 8:
+		_do_spawn(money, player.global_position + Vector3(randf_range(-20, 20), 8, randf_range(-20, 20)), Vector3.ZERO, false, CITY_K)
+
+
+func _earth_preview() -> void:
+	# 城市 → 地球 (preview): powers-of-ten pull-out to orbit, hold, come back.
+	_begin_cutscene()
+	_build_earth()
+	var cam := Camera3D.new()
+	cam.fov = 60.0
+	cam.far = 300000.0
+	add_child(cam)
+	var start_xf: Transform3D = player.camera.global_transform
+	cam.global_transform = start_xf
+	cam.make_current()
+	var focus: Vector3 = player.global_position
+	var h0: float = max(start_xf.origin.y, 10.0)
+	var h1 := 26000.0
+	var place := func(u: float) -> void:
+		var e: float = u * u * (3.0 - 2.0 * u)
+		var h: float = h0 * pow(h1 / h0, e)
+		var top := focus + Vector3(0, h, h * 0.35)
+		var blend: float = clamp(u / 0.2, 0.0, 1.0)
+		var pos: Vector3 = start_xf.origin.lerp(top, blend)
+		cam.global_position = pos
+		cam.near = max(0.05, h * 0.002)
+		var look: Vector3 = (start_xf.origin + -start_xf.basis.z * 10.0).lerp(focus, blend)
+		if pos.distance_to(look) > 0.01:
+			cam.look_at(look, Vector3.UP)
+		_set_space(clamp((u - 0.25) / 0.5, 0.0, 1.0))
+	var t := create_tween()
+	t.set_ignore_time_scale(true)
+	Juice.ui_sfx("powerup", -2.0, 0.6)
+	t.tween_method(place, 0.0, 1.0, 5.0)
+	t.tween_callback(func():
+		hud.show_l3("地球", "涌现出来了。", 6)
+		Juice.ui_sfx("chime", 0.0, 0.7))
+	t.tween_interval(2.8)
+	t.tween_callback(func(): hud.show_l3("第三幕", "未完待续。", 6))
+	t.tween_interval(2.6)
+	t.tween_method(place, 1.0, 0.0, 3.2)
+	t.tween_callback(func():
+		player.camera.make_current()
+		cam.queue_free()
+		_set_space(0.0)
+		_earth_root.visible = false
+		Stats.enter_stage(2)
+		_end_cutscene())
+
+
+func _set_space(v: float) -> void:
+	var space := Color(0.01, 0.01, 0.04)
+	_sky.sky_top_color = _sky_colors[0].lerp(space, v)
+	_sky.sky_horizon_color = _sky_colors[1].lerp(space, v)
+	_sky.ground_horizon_color = _sky_colors[2].lerp(space, v)
+	_sky.ground_bottom_color = _sky_colors[3].lerp(space, v)
+
+
+func _build_earth() -> void:
+	if _earth_root:
+		_earth_root.visible = true
+		return
+	_earth_root = Node3D.new()
+	add_child(_earth_root)
+	var r := 4200.0
+	var earth := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = r
+	sm.height = r * 2.0
+	sm.radial_segments = 96
+	sm.rings = 48
+	earth.mesh = sm
+	var noise := FastNoiseLite.new()
+	noise.seed = 3
+	noise.frequency = 0.012
+	noise.fractal_octaves = 5
+	var tex := NoiseTexture2D.new()
+	tex.width = 1024
+	tex.height = 512
+	tex.seamless = true
+	tex.noise = noise
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.5, 0.53, 0.6, 0.75, 1.0])
+	g.colors = PackedColorArray([Color(0.05, 0.15, 0.5), Color(0.1, 0.35, 0.75), Color(0.85, 0.8, 0.55),
+		Color(0.25, 0.6, 0.25), Color(0.2, 0.45, 0.2), Color(0.95, 0.95, 0.95)])
+	tex.color_ramp = g
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.roughness = 0.9
+	earth.material_override = mat
+	earth.position = Vector3(0, -r - 3.0, 0)
+	_earth_root.add_child(earth)
+	# a rainbow ring, because of course
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = r * 1.35
+	tm.outer_radius = r * 1.45
+	tm.rings = 96
+	tm.ring_segments = 8
+	ring.mesh = tm
+	ring.material_override = Visuals.rainbow_material(0.5, 0.0004)
+	ring.position = earth.position
+	ring.rotation_degrees = Vector3(18, 0, 10)
+	_earth_root.add_child(ring)
+	# moon
+	var moon := MeshInstance3D.new()
+	var mm := SphereMesh.new()
+	mm.radius = 1100.0
+	mm.height = 2200.0
+	moon.mesh = mm
+	var moon_mat := StandardMaterial3D.new()
+	moon_mat.albedo_color = Color(0.8, 0.8, 0.78)
+	moon.material_override = moon_mat
+	moon.position = Vector3(9000, 4000, -7000)
+	_earth_root.add_child(moon)
+	# stars
+	var mmi := MultiMeshInstance3D.new()
+	var mmesh := MultiMesh.new()
+	mmesh.transform_format = MultiMesh.TRANSFORM_3D
+	var star := SphereMesh.new()
+	star.radius = 90.0
+	star.height = 180.0
+	star.radial_segments = 4
+	star.rings = 2
+	mmesh.mesh = star
+	mmesh.instance_count = 700
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for i in mmesh.instance_count:
+		var d := Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.2, 1), rng.randf_range(-1, 1)).normalized()
+		mmesh.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ONE * rng.randf_range(0.5, 2.0)), d * 120000.0))
+	mmi.multimesh = mmesh
+	var star_mat := StandardMaterial3D.new()
+	star_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	star_mat.albedo_color = Color(1, 1, 0.9)
+	mmi.material_override = star_mat
+	_earth_root.add_child(mmi)
 
 
 # ---------- world building ----------
@@ -182,13 +545,13 @@ func _build_ground() -> void:
 	ground.collision_mask = 0
 	var cs := CollisionShape3D.new()
 	var s := BoxShape3D.new()
-	s.size = Vector3(140, 2, 140)
+	s.size = Vector3(GROUND_SIZE, 2, GROUND_SIZE)
 	cs.shape = s
 	cs.position = Vector3(0, -1, 0)
 	ground.add_child(cs)
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(140, 140)
+	pm.size = Vector2(GROUND_SIZE, GROUND_SIZE)
 	mi.mesh = pm
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(0.5, 0.68, 0.4)
@@ -304,4 +667,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_spawn"):
 		var names := ["鸽子", "钱", "路人", "苹果", "汽车"]
 		var def = DB.get_def(names.pick_random())
-		spawn_body(def, player.global_position + player.facing * 3.0 + Vector3(0, 3, 0), Vector3.ZERO)
+		spawn_body(def, player.global_position + player.facing * 3.0 * player.k + Vector3(0, 3, 0) * player.k, Vector3.ZERO)
+	if event.is_action_pressed("next_stage"):
+		if not Stats.has_released:
+			Stats.record_release(0.0)
+		advance_stage()

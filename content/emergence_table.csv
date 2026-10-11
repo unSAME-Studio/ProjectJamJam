@@ -1,37 +1,37 @@
 id,name,act,tier,pattern,size,anchored,emits,collapse_n,collapse_into,eats,eat_emits,recipes,line,status,owner,notes
 person,路人,1,2,system,M,,,12,单位,,,钱→老板; 小广告→中介,原来如此。,approved,,被打中→爬起来→「原来如此。」→开窍：自己做小规模吐纳（吸附近几个小东西，随机方向吐）。不再分裂出新路人
-pigeon,鸽子,1,2,reproduce,S,,鸽子×3,30,鸽群,,,,鸽子涌现出来了。,approved,,最便宜的数量炸弹
+pigeon,鸽子,1,2,reproduce,S,,鸽子×3,15,鸽群,,,,鸽子涌现出来了。,approved,,最便宜的数量炸弹
 flock,鸽群,1,3,reproduce,M,,,3,天气,,,,鸽群涌现出来了。,approved,,会飞的子弹，撞到什么触发什么
 weather,天气,1,4,container,L,,雨×25,,,,,,天气涌现出来了。,idea,,雨=水，落到下水道附近触发鳄鱼链
 tree,树,1,1,container,M,y,苹果×5,8,公园,,,,苹果涌现出来了。,approved,,
-apple,苹果,1,1,recursive,S,,树×1,,,,,,树涌现出来了。,approved,,苹果→树→苹果，无限植物灾难。喷出的树先是小树苗，几秒长大
+apple,苹果,1,1,recursive,S,,树×1,12,果园,,,,树涌现出来了。,approved,,苹果→树→苹果，无限植物灾难。喷出的树先是小树苗，几秒长大
 park,公园,1,3,container,L,y,大爷×1,,,,,,公园涌现出来了。,approved,,
 grandpa,大爷,1,2,system,M,,太极×1,,,,,,嗯。,approved,,天生开窍，不需要被传染。气功源头。太极=持续推开周围东西的力场
 hydrant,消防栓,1,1,container,S,y,水×30,,,,,,水涌现出来了。,approved,,
-water,水,1,1,,S,,,30,洪水,,,,,approved,,小球体/粒子，没有自己的涌现。被下水道吃
+water,水,1,1,,S,,,20,洪水,,,,,approved,,小球体/粒子，没有自己的涌现。被下水道吃
 flood,洪水,1,2,,L,,,,,,,,洪水涌现出来了。,approved,,数量兜底：水×30 合成一滩，物理上只有一个物体，14 秒后蒸发。不再喷水
 drain,下水道,1,1,container,S,y,,,,水×20,鳄鱼×1,,鳄鱼涌现出来了。,approved,,消化者。都市传说
 croc,鳄鱼,1,2,reproduce,M,,鳄鱼×1,5,皮包,,,,鳄鱼涌现出来了。,approved,,
 handbag,皮包,1,3,container,S,,钱×15,,,,,,皮包涌现出来了。,idea,,鳄鱼皮包→钱，接回资本链
 trashcan,垃圾桶,1,1,container,M,y,垃圾×8,,,,,,垃圾涌现出来了。,approved,,
-trash,垃圾,1,1,,S,,,20,垃圾山,,,,,approved,,
+trash,垃圾,1,1,,S,,,12,垃圾山,,,,,approved,,
 trashpile,垃圾山,1,2,container,M,,,,,,,,垃圾山涌现出来了。,approved,,被垃圾车吃
 garbagetruck,垃圾车,1,1,container,L,,,,,垃圾山×2,回收站×1,,回收站涌现出来了。,approved,,消化者。吃够了喷出 XP 回收站图标→飞到屏幕角变成归档 UI
 recyclebin,回收站,1,4,system,M,y,,,,*×30,,,回收站已清空。,approved,,第一幕：垃圾车涌现出来后飞到屏幕左下角成为归档 UI。桌面插曲：地上的固定图标，吃任何东西，吃够 30 个→清空回收站→内存释放（唯一的减法）
 vending,自动售货机,1,1,container,M,y,饮料×6,,,,,,饮料涌现出来了。,approved,,
 drink,饮料,1,1,system,S,,气×1,10,小卖部,,,,气涌现出来了。,approved,,被打中=摇晃过的可乐，喷气乱飞，是最好的随机子弹
 kiosk,小卖部,1,3,container,L,y,辣条×12,,,,,,小卖部涌现出来了。,approved,,
-latiao,辣条,1,1,,S,,,15,童年,,,,,approved,,
+latiao,辣条,1,1,,S,,,10,童年,,,,,approved,,
 childhood,童年,1,4,concept,M,,,,,,,,童年涌现出来了。,idea,,一个发光的概念物体，撞到路人→路人变小孩（小一号、跑得快）
 atm,ATM,1,1,container,M,y,钱×20,,,,,,钱涌现出来了。,approved,,第一幕的明星物体。小人 1 级时只能榨（按住 1s 吐钱，钱飞进肚子），丹田 2 级后可以整台吸走
-money,钱,1,1,,S,,,20,资本,,,,,approved,,撞路人→老板（配方）
+money,钱,1,1,,S,,,12,资本,,,,,approved,,撞路人→老板（配方）
 capital,资本,1,3,concept,M,,公司×1,,,,,,资本涌现出来了。,approved,,
 boss,老板,1,2,container,M,,上班族×8,,,,,,上班族涌现出来了。,approved,,
 bus,公交车,1,1,container,L,,路人×12,4,堵车,,,,乘客涌现出来了。,approved,,
 car,汽车,1,1,reproduce,M,,汽车×2,6,堵车,,,,小汽车涌现出来了。,approved,,块魂梗。喷出来的汽车是小一号的，缩放 0.6
 jam_traffic,堵车,1,3,container,L,,汽车×4,3,交通,,,,堵车涌现出来了。,approved,,一整块不动的车。喇叭声是声波触发器
 pole,电线杆,1,1,container,M,y,小广告×10,,,,,,小广告涌现出来了。,approved,,办证 / 重金求子 / 祖传老中医
-flyer,小广告,1,1,,S,,,20,贴吧,,,,,approved,,贴在任何撞到的东西表面
+flyer,小广告,1,1,,S,,,12,贴吧,,,,,approved,,贴在任何撞到的东西表面
 speaker,大喇叭,1,1,system,S,y,声波×1,,,,,,走过路过不要错过。,approved,,声波=范围触发，连锁放大器
 newsstand,报刊亭,1,1,container,M,y,光盘×10,,,,,,光盘涌现出来了。,approved,,
 disc,光盘,1,1,,S,,,10,盗版,,,,,approved,,会滚，会反光
@@ -123,3 +123,4 @@ exe,涌现出来了_第二章.exe,D,4,system,L,y,,,,,,,内存不足，请关闭�
 cursor,鼠标指针,D,0,,-,,,,,,,,,approved,,桌面插曲的玩家身体。按住=框选吸附，松开=拖拽甩出
 excavator,挖掘机,2,0,,-,,,,,,,,,approved,,第二幕的玩家身体
 earth,地球,3,0,,-,,,,,,,,,approved,,第三幕的玩家身体
+orchard,果园,1,3,container,L,,苹果×10; 树×2,,,,,,果园涌现出来了。,approved,,苹果×12。苹果→树→苹果的出口，否则苹果会堆满地图

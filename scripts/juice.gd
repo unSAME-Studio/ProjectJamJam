@@ -22,6 +22,7 @@ const SFX := {
 }
 
 var camera: Camera3D
+var cinematic := false   # cutscenes own time_scale; slowmo/hitstop are ignored
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer3D] = []
 var _ui_pool: Array[AudioStreamPlayer] = []
@@ -95,6 +96,8 @@ func ui_sfx(kind: String, volume_db: float = 0.0, pitch: float = 1.0) -> AudioSt
 
 
 func slowmo(duration: float = 0.3, scale: float = 0.08) -> void:
+	if cinematic:
+		return
 	if _slowmo_tween and _slowmo_tween.is_valid():
 		_slowmo_tween.kill()
 	_slowmo_tween = create_tween()
@@ -104,7 +107,15 @@ func slowmo(duration: float = 0.3, scale: float = 0.08) -> void:
 	_slowmo_tween.tween_property(Engine, "time_scale", 1.0, 0.25)
 
 
+func reset_time() -> void:
+	if _slowmo_tween and _slowmo_tween.is_valid():
+		_slowmo_tween.kill()
+	Engine.time_scale = 1.0
+
+
 func hitstop(seconds: float = 0.05) -> void:
+	if cinematic:
+		return
 	# Short freeze; measured in real time, so the interval is scaled.
 	if _slowmo_tween and _slowmo_tween.is_valid() and Engine.time_scale < 0.5:
 		return
