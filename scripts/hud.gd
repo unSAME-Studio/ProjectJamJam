@@ -322,7 +322,7 @@ func show_l3(name_text: String, suffix_text: String, tier: int = 5) -> void:
 	_l3.setup(name_text, suffix_text, tier, true)
 	var vp := get_viewport().get_visible_rect().size
 	_l3.position = (vp - _l3.size) * 0.5 - Vector2(0, vp.y * 0.08)
-	_l3.pop_in(2.2)
+	_l3.pop_in(1.6)
 	if _l3_tween and _l3_tween.is_valid():
 		_l3_tween.kill()
 	_l3_tween = _l3.create_tween()
